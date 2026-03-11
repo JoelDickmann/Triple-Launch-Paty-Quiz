@@ -168,6 +168,7 @@ var S = {
   connected: false, lastError: null, tick: 0
 };
 var chartInst = null;
+var lastRenderHash = "";
 
 // ── Firebase ───────────────────────────────────────────────────────
 function getCfg()  { try{return JSON.parse(localStorage.getItem("quiz_cfg")||"null");}catch(e){return null;} }
@@ -217,13 +218,16 @@ function syncPending() {
   S.participants.forEach(function(p){ S.pending[p]=S.scores[p]?S.scores[p][S.curQ]:null; });
 }
 
-// Poll every 2s — skip render when user is typing
+// Poll every 2s — skip render when nothing changed or user is typing
 setInterval(function() {
   if(!getCfg()||!S.connected)return;
   fbGet(function(data){
     if(data) applyRemote(data);
     var a=document.activeElement;
     if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))return;
+    var hash=JSON.stringify({p:S.participants,sc:S.scores,sub:S.submitted,q:S.qCount});
+    if(hash===lastRenderHash)return;
+    lastRenderHash=hash;
     render();
   });
 }, 2000);
