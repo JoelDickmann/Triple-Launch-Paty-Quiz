@@ -160,11 +160,13 @@ pre { color: #00ff88; font-size: 10px; margin-top: 6px; }
 <script>
 var DP = ["Alex","Beni","Clara","David","Emma","Finn","Greta","Hans","Ida","Jonas","Klara","Leon"];
 var DQ = 10;
+var DQT = Array(DQ).fill(0).map(function(_,i){return "Frage "+(i+1);});
 var S = {
   mode: "admin",
   participants: DP.slice(), qCount: DQ, curQ: 0,
+  questions: DQT.slice(),
   scores: {}, pending: {}, submitted: Array(DQ).fill(false),
-  flash: false, modal: null, editIdx: null, editVal: "", newName: "",
+  flash: false, modal: null, editIdx: null, editVal: "", editQIdx: null, editQVal: "", newName: "",
   connected: false, lastError: null, tick: 0
 };
 var chartInst = null;
@@ -194,13 +196,14 @@ function fbFetch(method, body, cb) {
     .catch(function(err){ S.connected=false; S.lastError=err.message||String(err); render(); });
 }
 function fbGet(cb) { fbFetch("GET",null,cb); }
-function fbSave()  { fbFetch("PUT",{participants:S.participants,questionCount:S.qCount,scores:S.scores,submitted:S.submitted},null); }
+function fbSave()  { fbFetch("PUT",{participants:S.participants,questionCount:S.qCount,questions:S.questions,scores:S.scores,submitted:S.submitted},null); }
 
 function applyRemote(d) {
   if(!d)return;
   var p=d.participants||DP.slice();
   var qc=d.questionCount||DQ;
   S.participants=p; S.qCount=qc;
+  S.questions=d.questions||Array(qc).fill(0).map(function(_,i){return "Frage "+(i+1);});
   S.submitted=d.submitted||Array(qc).fill(false);
   var sc={};
   p.forEach(function(n){
@@ -225,7 +228,7 @@ setInterval(function() {
     if(data) applyRemote(data);
     var a=document.activeElement;
     if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))return;
-    var hash=JSON.stringify({p:S.participants,sc:S.scores,sub:S.submitted,q:S.qCount});
+    var hash=JSON.stringify({p:S.participants,sc:S.scores,sub:S.submitted,q:S.qCount,qt:S.questions});
     if(hash===lastRenderHash)return;
     lastRenderHash=hash;
     render();
@@ -364,8 +367,12 @@ function renderSetup() {
   var qi="";
   for(var i=0;i<S.qCount;i++){
     var done=S.submitted[i];
+    var qtext=S.questions[i]||("Frage "+(i+1));
     qi+='<div class="qi '+(done?"done":"")+'"><span class="qibadge '+(done?"done":"idle")+'">'+(done?"✓ DONE":"OFFEN")+'</span>'
-      +'<span class="qiname '+(done?"done":"idle")+'">Frage '+(i+1)+'</span>'
+      +(S.editQIdx===i
+        ?'<input id="editq_inp" class="sei" value="'+esc(S.editQVal)+'">'
+        :'<span class="qiname '+(done?"done":"idle")+'">'+esc(qtext)+'</span>')
+      +'<button class="ibtn edit" data-editq="'+i+'">'+(S.editQIdx===i?"✓":"✎")+'</button>'
       +'<button class="ibtn del" '+(S.qCount<=1?"disabled":"")+'data-delq="'+i+'">✕</button></div>';
   }
   var answered=S.submitted.filter(Boolean).length;
@@ -485,6 +492,14 @@ function bindAll() {
     ei.focus();
     var len=ei.value.length; ei.setSelectionRange(len,len);
   }
+  var eqi=ge("editq_inp");
+  if(eqi){
+    eqi.oninput=function(){S.editQVal=this.value;};
+    eqi.onkeydown=function(e){if(e.key==="Enter")commitEditQ();if(e.key==="Escape"){S.editQIdx=null;render();}};
+    eqi.onblur=function(){setTimeout(commitEditQ,150);};
+    eqi.focus();
+    var qlen=eqi.value.length; eqi.setSelectionRange(qlen,qlen);
+  }
   document.querySelectorAll(".qpill").forEach(function(el){el.onclick=function(){S.curQ=+this.dataset.q;syncPending();render();};});
   document.querySelectorAll(".pbtn").forEach(function(el){
     el.onclick=function(){var p=this.dataset.p;var v=this.dataset.v==="1";S.pending[p]=S.pending[p]===v?null:v;render();};
@@ -494,6 +509,9 @@ function bindAll() {
   });
   document.querySelectorAll("[data-del]").forEach(function(el){
     el.onclick=function(){showConfirm('"'+this.dataset.del+'" wirklich löschen?',"delP",this.dataset.del);};
+  });
+  document.querySelectorAll("[data-editq]").forEach(function(el){
+    el.onclick=function(){var i=+this.dataset.editq;if(S.editQIdx===i)commitEditQ();else{S.editQIdx=i;S.editQVal=S.questions[i]||("Frage "+(i+1));render();}};
   });
   document.querySelectorAll("[data-delq]").forEach(function(el){
     el.onclick=function(){
@@ -523,6 +541,7 @@ function doModalOk(){
   }else if(m.action==="delQ"){
     var idx=m.arg;
     S.participants.forEach(function(p){if(S.scores[p])S.scores[p].splice(idx,1);});
+    S.questions.splice(idx,1);
     S.submitted.splice(idx,1); S.qCount--;
     S.curQ=Math.min(S.curQ,S.qCount-1); syncPending(); fbSave(); render();
   }
@@ -545,8 +564,16 @@ function doAdd(){
 }
 function doAddQ(){
   S.qCount++;
+  S.questions.push("Frage "+S.qCount);
   S.participants.forEach(function(p){if(S.scores[p])S.scores[p].push(null);else S.scores[p]=Array(S.qCount).fill(null);});
   S.submitted.push(false); fbSave(); render();
+}
+function commitEditQ(){
+  var i=S.editQIdx; if(i===null||i===undefined)return;
+  var n=(S.editQVal||"").trim(); S.editQIdx=null;
+  if(!n){render();return;}
+  S.questions[i]=n;
+  fbSave(); render();
 }
 function commitEdit(){
   var i=S.editIdx; if(i===null||i===undefined)return;
