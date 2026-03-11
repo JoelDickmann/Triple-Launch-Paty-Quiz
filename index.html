@@ -3,15 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Quiz Admin</title>
+<title>Quiz Live</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: #07070f; color: #e0e0e0; font-family: 'Courier New', monospace; min-height: 100vh; }
+body { background: #07070f; color: #e0e0e0; font-family: 'Courier New', monospace; min-height: 100vh; overflow-x: hidden; }
+code { color: #00ff88; background: #001a0a; padding: 1px 5px; border-radius: 3px; font-family: 'Courier New', monospace; }
+pre { color: #00ff88; font-size: 10px; margin-top: 6px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Config & Error ── */
+.cfg { max-width: 520px; margin: 0 auto; padding: 32px 16px; }
+.cfg-title { font-size: 22px; font-weight: bold; color: #00ff88; letter-spacing: 2px; margin-bottom: 4px; }
+.cfg-sub { font-size: 10px; color: #555; letter-spacing: 3px; margin-bottom: 24px; }
+.cfg-lbl { font-size: 9px; letter-spacing: 3px; color: #444; margin-bottom: 5px; }
+.cfg-inp { width: 100%; background: #0d0d17; border: 1px solid #252535; border-radius: 6px; color: #e0e0e0; padding: 11px 12px; font-family: 'Courier New', monospace; font-size: 12px; outline: none; margin-bottom: 10px; }
+.cfg-inp:focus { border-color: #00ff8840; }
+.cfg-save { width: 100%; padding: 13px; border-radius: 10px; border: none; background: linear-gradient(135deg,#00dd77,#00aa55); color: #000; font-size: 11px; font-weight: bold; letter-spacing: 4px; font-family: 'Courier New', monospace; cursor: pointer; margin-bottom: 8px; }
+.cfg-hint { padding: 16px; background: #0a0a14; border: 1px solid #1a2a1a; border-radius: 10px; font-size: 10px; color: #555; line-height: 2.1; }
+.cfg-hint a { color: #4a8fff; }
+.cfg-hint b { color: #aaa; }
+.cfg-rules { margin-top: 14px; padding: 12px; background: #0f1a0f; border: 1px solid #003318; border-radius: 8px; }
+.cfg-rules b { color: #00ff88; }
+.err-box { margin: 14px; padding: 14px; background: #1a000a; border: 1px solid #cc224440; border-radius: 10px; font-size: 10px; color: #cc6666; line-height: 1.8; }
+.err-box b { color: #ff4466; display: block; margin-bottom: 6px; letter-spacing: 2px; }
+.err-box code { display: block; margin-top: 8px; padding: 8px; background: #0f0006; border-radius: 4px; font-size: 9px; color: #ff6688; word-break: break-all; }
+.err-box a { color: #4a8fff; }
+
+/* ── Header ── */
 .header { background: linear-gradient(180deg,#0d1117,#090912); border-bottom: 1px solid #00ff8830; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
 .brand-sub { font-size: 8px; letter-spacing: 5px; color: #00ff88; margin-bottom: 1px; }
 .brand-title { font-size: 16px; font-weight: bold; color: #fff; letter-spacing: 3px; }
 .tab-bar { display: flex; gap: 5px; }
-.tab { padding: 7px 11px; border-radius: 5px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2px; border: 1px solid; transition: all .15s; background: transparent; }
+.tab { padding: 6px 9px; border-radius: 5px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 8px; letter-spacing: 1px; border: 1px solid; transition: all .15s; background: transparent; white-space: nowrap; }
 .tab.on { border-color: #00ff88; background: #00ff8812; color: #00ff88; }
 .tab.off { border-color: #1e1e2e; color: #444; }
 .conn { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; letter-spacing: 2px; padding: 2px 7px; border-radius: 20px; }
@@ -20,12 +44,9 @@ body { background: #07070f; color: #e0e0e0; font-family: 'Courier New', monospac
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 .dot.live { background: #00ff88; animation: blink 2s infinite; }
 .dot.dead { background: #cc2244; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Admin & Setup ── */
 .panel { padding: 14px; max-width: 480px; margin: 0 auto; }
-.err-box { margin: 14px; padding: 14px; background: #1a000a; border: 1px solid #cc224440; border-radius: 10px; font-size: 10px; color: #cc6666; line-height: 1.8; }
-.err-box b { color: #ff4466; display: block; margin-bottom: 6px; letter-spacing: 2px; }
-.err-box code { display: block; margin-top: 8px; padding: 8px; background: #0f0006; border-radius: 4px; font-size: 9px; color: #ff6688; word-break: break-all; }
-.err-box a { color: #4a8fff; }
 .sec-hdr { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
 .sec-lbl { font-size: 9px; letter-spacing: 4px; color: #444; }
 .sec-cnt { font-size: 9px; color: #00ff88; background: #001a0a; border: 1px solid #003318; border-radius: 20px; padding: 1px 7px; }
@@ -103,21 +124,35 @@ body { background: #07070f; color: #e0e0e0; font-family: 'Courier New', monospac
 .mcancel { padding: 9px 18px; border-radius: 7px; border: 1px solid #252535; background: transparent; color: #555; cursor: pointer; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; }
 .mconfirm { padding: 9px 18px; border-radius: 7px; border: none; background: #cc2233; color: #fff; cursor: pointer; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; font-weight: bold; }
 .mok { padding: 9px 18px; border-radius: 7px; border: none; background: #1a2a3a; color: #4a8fff; cursor: pointer; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; font-weight: bold; }
-.cfg { max-width: 520px; margin: 0 auto; padding: 32px 16px; }
-.cfg-title { font-size: 22px; font-weight: bold; color: #00ff88; letter-spacing: 2px; margin-bottom: 4px; }
-.cfg-sub { font-size: 10px; color: #555; letter-spacing: 3px; margin-bottom: 24px; }
-.cfg-lbl { font-size: 9px; letter-spacing: 3px; color: #444; margin-bottom: 5px; }
-.cfg-inp { width: 100%; background: #0d0d17; border: 1px solid #252535; border-radius: 6px; color: #e0e0e0; padding: 11px 12px; font-family: 'Courier New', monospace; font-size: 12px; outline: none; margin-bottom: 10px; }
-.cfg-inp:focus { border-color: #00ff8840; }
-.cfg-save { width: 100%; padding: 13px; border-radius: 10px; border: none; background: linear-gradient(135deg,#00dd77,#00aa55); color: #000; font-size: 11px; font-weight: bold; letter-spacing: 4px; font-family: 'Courier New', monospace; cursor: pointer; margin-bottom: 8px; }
-.cfg-reset { width: 100%; padding: 8px; border-radius: 7px; background: transparent; border: 1px solid #2a0010; color: #552233; cursor: pointer; font-size: 9px; letter-spacing: 3px; font-family: 'Courier New', monospace; margin-bottom: 16px; }
-.cfg-hint { padding: 16px; background: #0a0a14; border: 1px solid #1a2a1a; border-radius: 10px; font-size: 10px; color: #555; line-height: 2.1; }
-.cfg-hint a { color: #4a8fff; }
-.cfg-hint b { color: #aaa; }
-code { color: #00ff88; background: #001a0a; padding: 1px 5px; border-radius: 3px; font-family: 'Courier New', monospace; }
-.cfg-rules { margin-top: 14px; padding: 12px; background: #0f1a0f; border: 1px solid #003318; border-radius: 8px; }
-.cfg-rules b { color: #00ff88; }
-pre { color: #00ff88; font-size: 10px; margin-top: 6px; }
+
+/* ── Dashboard ── */
+.dash { padding: clamp(14px,3vw,48px); max-width: 1800px; margin: 0 auto; }
+.dash-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(14px,3vh,32px); flex-wrap: wrap; gap: 10px; }
+.logo .brand { font-size: clamp(8px,1vw,11px); letter-spacing: 5px; color: #00ff88; margin-bottom: 2px; }
+.logo .title { font-size: clamp(26px,5vw,72px); font-weight: bold; color: #fff; letter-spacing: -1px; line-height: 1; }
+.dash-stats { display: flex; gap: clamp(8px,1.5vw,18px); flex-wrap: wrap; align-items: center; }
+.pill { font-size: clamp(9px,1vw,12px); letter-spacing: 2px; background: #0a0a14; border: 1px solid #161622; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; gap: 6px; color: #444; }
+.pill .val { color: #00ff88; }
+.pill.dead .val { color: #cc2244; }
+.pill .dot-lg { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.pill .dot-lg.live { background: #00ff88; animation: blink 2s infinite; }
+.pill .dot-lg.dead { background: #cc2244; }
+.chart-wrap { background: linear-gradient(180deg,#0d1117,#090910); border: 1px solid #0f1f0f; border-radius: 20px; padding: clamp(16px,3vw,44px) clamp(12px,2.5vw,28px) clamp(12px,2vw,22px); position: relative; overflow: hidden; margin-bottom: clamp(12px,2.5vh,26px); box-shadow: 0 0 80px #00ff8806, inset 0 1px 0 #00ff8815; }
+.chart-grid { position: absolute; inset: 0; opacity: .018; pointer-events: none; background-image: linear-gradient(#00ff88 1px,transparent 1px), linear-gradient(90deg,#00ff88 1px,transparent 1px); background-size: 60px 60px; }
+.lb { display: grid; grid-template-columns: repeat(auto-fill,minmax(clamp(110px,11vw,190px),1fr)); gap: clamp(6px,1vw,11px); }
+.lbc { border-radius: 12px; padding: clamp(8px,1.2vw,15px) clamp(9px,1.5vw,17px); display: flex; align-items: center; gap: clamp(6px,.8vw,11px); }
+.lbc.f { background: linear-gradient(145deg,#001a0a,#002d12); border: 1px solid #00ff8440; box-shadow: 0 0 28px #00ff8810; }
+.lbc.p { background: #0a0a12; border: 1px solid #0f2a0f; }
+.lbc.r { background: #0a0a12; border: 1px solid #121220; }
+.lrank { font-weight: bold; flex-shrink: 0; font-size: clamp(14px,2vw,25px); }
+.lrank.r1 { color: #00ff88; } .lrank.r2 { color: #888; } .lrank.r3 { color: #b87333; } .lrank.rn { color: #1e1e2e; }
+.linfo { flex: 1; min-width: 0; }
+.lname { font-size: clamp(9px,1vw,12px); color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lscore { font-weight: bold; line-height: 1.1; font-size: clamp(16px,2.5vw,30px); }
+.lscore.f { color: #00ff88; } .lscore.r { color: #eee; }
+.ldenom { font-size: clamp(8px,.9vw,12px); color: #2a2a3a; }
+.fs-btn { padding: 7px 11px; border-radius: 5px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2px; border: 1px solid #00ff8825; background: transparent; color: #00ff8866; transition: all .15s; }
+.fs-btn:hover { border-color: #00ff8855; color: #00ff88; background: #001a0a; }
 </style>
 </head>
 <body>
@@ -126,163 +161,150 @@ pre { color: #00ff88; font-size: 10px; margin-top: 6px; }
 var DP = ["Alex","Beni","Clara","David","Emma","Finn","Greta","Hans","Ida","Jonas","Klara","Leon"];
 var DQ = 10;
 var S = {
-  mode:"admin", participants:DP.slice(), qCount:DQ, curQ:0,
-  scores:{}, pending:{}, submitted:Array(DQ).fill(false),
-  flash:false, modal:null, editIdx:null, editVal:"", newName:"",
-  connected:false, lastError:null
+  mode: "admin",
+  participants: DP.slice(), qCount: DQ, curQ: 0,
+  scores: {}, pending: {}, submitted: Array(DQ).fill(false),
+  flash: false, modal: null, editIdx: null, editVal: "", newName: "",
+  connected: false, lastError: null, tick: 0
 };
+var chartInst = null;
 
-// ── Firebase REST ─────────────────────────────────────────────────
-function getCfg()  { try { return JSON.parse(localStorage.getItem("quiz_cfg")||"null"); } catch(e){return null;} }
-function saveCfg(c){ localStorage.setItem("quiz_cfg", JSON.stringify(c)); }
+// ── Firebase ───────────────────────────────────────────────────────
+function getCfg()  { try{return JSON.parse(localStorage.getItem("quiz_cfg")||"null");}catch(e){return null;} }
+function saveCfg(c){ localStorage.setItem("quiz_cfg",JSON.stringify(c)); }
 function clearCfg(){ localStorage.removeItem("quiz_cfg"); render(); }
-
-function dbUrl() {
-  var c = getCfg(); if(!c) return null;
-  return c.databaseURL.replace(/\/$/,"") + "/quiz.json";
-}
+function dbUrl()   { var c=getCfg(); if(!c)return null; return c.databaseURL.replace(/\/$/,"")+"/quiz.json"; }
 
 function fbFetch(method, body, cb) {
-  var url = dbUrl(); if(!url) return;
-  var opts = { method: method, headers: {"Content-Type":"application/json"} };
-  if (body !== null) opts.body = JSON.stringify(body);
-  fetch(url, opts)
-    .then(function(r) {
-      return r.text().then(function(t) { return {ok: r.ok, status: r.status, text: t}; });
-    })
-    .then(function(res) {
-      var parsed;
-      try { parsed = JSON.parse(res.text); } catch(e) { parsed = null; }
-      // Firebase error objects look like {"error":"Permission denied."}
-      if (!res.ok || (parsed && typeof parsed === "object" && parsed !== null && parsed.error)) {
-        var msg = (parsed && parsed.error) ? parsed.error : ("HTTP " + res.status + " — " + res.text.slice(0,200));
+  var url=dbUrl(); if(!url)return;
+  var opts={method:method,headers:{"Content-Type":"application/json"}};
+  if(body!==null) opts.body=JSON.stringify(body);
+  fetch(url,opts)
+    .then(function(r){ return r.text().then(function(t){return{ok:r.ok,status:r.status,text:t};}); })
+    .then(function(res){
+      var parsed; try{parsed=JSON.parse(res.text);}catch(e){parsed=null;}
+      if(!res.ok||(parsed&&typeof parsed==="object"&&parsed!==null&&parsed.error)){
+        var msg=(parsed&&parsed.error)?parsed.error:("HTTP "+res.status+" — "+res.text.slice(0,200));
         throw new Error(msg);
       }
-      S.connected = true; S.lastError = null;
-      if (cb) cb(parsed);
+      S.connected=true; S.lastError=null; S.tick++;
+      if(cb) cb(parsed);
     })
-    .catch(function(err) {
-      S.connected = false;
-      S.lastError = err.message || String(err);
-      render();
-    });
+    .catch(function(err){ S.connected=false; S.lastError=err.message||String(err); render(); });
 }
-
-function fbGet(cb) { fbFetch("GET", null, cb); }
-function fbSave()  { fbFetch("PUT", getPayload(), null); }
-
-function getPayload() {
-  return {participants:S.participants, questionCount:S.qCount, scores:S.scores, submitted:S.submitted};
-}
-
-// ── Polling every 3s ─────────────────────────────────────────────
-setInterval(function() {
-  if (!getCfg() || !S.connected) return; // only poll when already connected
-  fbGet(function(data) {
-    if(data) applyRemote(data);
-    var a = document.activeElement;
-    if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
-    render();
-  });
-}, 3000);
+function fbGet(cb) { fbFetch("GET",null,cb); }
+function fbSave()  { fbFetch("PUT",{participants:S.participants,questionCount:S.qCount,scores:S.scores,submitted:S.submitted},null); }
 
 function applyRemote(d) {
-  if (!d) return;
-  var p = d.participants || DP.slice();
-  var qc = d.questionCount || DQ;
-  S.participants = p; S.qCount = qc;
-  S.submitted = d.submitted || Array(qc).fill(false);
-  var sc = {};
-  p.forEach(function(n) {
-    sc[n] = [];
-    for (var i=0;i<qc;i++) sc[n].push(d.scores&&d.scores[n]&&d.scores[n][i]!==undefined?d.scores[n][i]:null);
+  if(!d)return;
+  var p=d.participants||DP.slice();
+  var qc=d.questionCount||DQ;
+  S.participants=p; S.qCount=qc;
+  S.submitted=d.submitted||Array(qc).fill(false);
+  var sc={};
+  p.forEach(function(n){
+    sc[n]=[];
+    for(var i=0;i<qc;i++) sc[n].push(d.scores&&d.scores[n]&&d.scores[n][i]!==undefined?d.scores[n][i]:null);
   });
-  S.scores = sc;
-  // Preserve pending selections the admin has already made
-  var prev = S.pending;
-  S.pending = {};
-  S.participants.forEach(function(p){
-    S.pending[p] = (p in prev) ? prev[p] : (S.scores[p] ? S.scores[p][S.curQ] : null);
+  S.scores=sc;
+  // Never overwrite pending — only initialize entries for new participants
+  S.participants.forEach(function(name){
+    if(!(name in S.pending)) S.pending[name]=null;
   });
 }
 function syncPending() {
-  S.pending = {};
+  S.pending={};
   S.participants.forEach(function(p){ S.pending[p]=S.scores[p]?S.scores[p][S.curQ]:null; });
 }
 
+// Poll every 2s — skip render when user is typing
+setInterval(function() {
+  if(!getCfg()||!S.connected)return;
+  fbGet(function(data){
+    if(data) applyRemote(data);
+    var a=document.activeElement;
+    if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))return;
+    render();
+  });
+}, 2000);
+
 // ── Util ──────────────────────────────────────────────────────────
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-function ge(id){return document.getElementById(id);}
-function on(id,ev,fn){var el=ge(id);if(el)el.addEventListener(ev,fn);}
-function showAlert(msg){S.modal={msg:msg,type:"alert"};render();}
-function showConfirm(msg,action,arg){S.modal={msg:msg,type:"confirm",action:action,arg:arg};render();}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function ge(id){ return document.getElementById(id); }
+function on(id,ev,fn){ var el=ge(id); if(el)el.addEventListener(ev,fn); }
+function showAlert(msg)            { S.modal={msg:msg,type:"alert"};render(); }
+function showConfirm(msg,action,arg){ S.modal={msg:msg,type:"confirm",action:action,arg:arg};render(); }
+window.clearCfg = clearCfg;
 
 // ── Render ────────────────────────────────────────────────────────
 function render() {
-  var app = ge("app");
-  if (!getCfg()) { app.innerHTML = renderCfg(); bindCfg(); return; }
-  var err = S.lastError ? renderErr() : "";
-  app.innerHTML = (S.modal?renderModal():"") + renderHeader() + err + (S.mode==="admin"?renderAdmin():renderSetup());
+  var app=ge("app");
+  if(!getCfg()){ renderCfg(); return; }
+  var err=S.lastError?renderErr():"";
+  var modal=S.modal?renderModal():"";
+  var body;
+  if(S.mode==="admin")     body=renderAdmin();
+  else if(S.mode==="setup") body=renderSetup();
+  else                       body=renderDashboard();
+  app.innerHTML=modal+renderHeader()+err+body;
   bindAll();
-}
-
-function renderErr() {
-  var e = S.lastError || "";
-  var hint = "";
-  if (e.indexOf("Permission denied") !== -1 || e.indexOf("permission") !== -1) {
-    hint = '<br>→ Firebase-Regeln erlauben keinen Zugriff.<br>'
-      + 'Gehe zu: <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a>'
-      + ' → Realtime Database → <b>Regeln</b> → Setze:<br>'
-      + '<code>{"rules":{".read":true,".write":true}}</code><br>→ Veröffentlichen klicken.';
-  } else if (e.indexOf("Failed to fetch") !== -1 || e.indexOf("NetworkError") !== -1 || e.indexOf("CORS") !== -1) {
-    hint = '<br>→ Netzwerkfehler oder falsche URL. Prüfe die Database-URL.';
-  } else if (e.indexOf("404") !== -1) {
-    hint = '<br>→ Datenbank nicht gefunden. Stelle sicher, dass die Realtime Database erstellt wurde.';
-  }
-  return '<div class="err-box"><b>⚠ VERBINDUNGSFEHLER</b>'
-    + esc(e) + hint
-    + '<code>' + esc(dbUrl()||"") + '</code>'
-    + '<button onclick="clearCfg()" style="margin-top:10px;width:100%;padding:7px;border-radius:5px;border:1px solid #cc224430;background:transparent;color:#cc4466;cursor:pointer;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:2px">↺ URL ÄNDERN</button>'
-    + '</div>';
+  if(S.mode==="dashboard") drawChart();
 }
 
 function renderCfg() {
-  return '<div class="cfg">'
-    + '<div class="cfg-title">QUIZ LIVE</div>'
-    + '<div class="cfg-sub">FIREBASE SETUP</div>'
-    + '<div class="cfg-lbl">FIREBASE DATABASE URL</div>'
-    + '<input id="cfg_url" class="cfg-inp" placeholder="https://mein-quiz-default-rtdb.firebaseio.com">'
-    + '<button class="cfg-save" id="cfg_save_btn">VERBINDEN →</button>'
-    + '<div class="cfg-hint">'
-    + '<b>So findest du die URL (3 Schritte):</b><br>'
-    + '1. <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Projekt öffnen<br>'
-    + '2. Links im Menü: <b>Realtime Database</b> → Datenbank erstellen → <b>Testmodus</b><br>'
-    + '3. URL steht oben in Rot, z.B.:<br>'
-    + '<code>https://mein-quiz-default-rtdb.firebaseio.com</code><br>'
-    + 'oder für Europa:<br>'
-    + '<code>https://mein-quiz-default-rtdb.europe-west1.firebasedatabase.app</code>'
-    + '<div class="cfg-rules">'
-    + '<b>Regeln prüfen (falls OFFLINE):</b><br>'
-    + 'Firebase Console → Realtime Database → Regeln → ersetzen mit:'
-    + '<pre>{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}</pre>'
-    + '→ <b>Veröffentlichen</b> klicken'
-    + '</div></div></div>';
+  ge("app").innerHTML='<div class="cfg">'
+    +'<div class="cfg-title">QUIZ LIVE</div>'
+    +'<div class="cfg-sub">FIREBASE SETUP</div>'
+    +'<div class="cfg-lbl">FIREBASE DATABASE URL</div>'
+    +'<input id="cfg_url" class="cfg-inp" placeholder="https://mein-quiz-default-rtdb.firebaseio.com">'
+    +'<button class="cfg-save" id="cfg_save_btn">VERBINDEN →</button>'
+    +'<div class="cfg-hint">'
+    +'<b>So findest du die URL (3 Schritte):</b><br>'
+    +'1. <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Projekt öffnen<br>'
+    +'2. Links im Menü: <b>Realtime Database</b> → Datenbank erstellen → <b>Testmodus</b><br>'
+    +'3. URL steht oben, z.B.:<br>'
+    +'<code>https://mein-quiz-default-rtdb.firebaseio.com</code>'
+    +'<div class="cfg-rules"><b>Regeln (falls OFFLINE):</b><br>'
+    +'Firebase Console → Realtime Database → Regeln:<br>'
+    +'<pre>{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}</pre>'
+    +'→ <b>Veröffentlichen</b></div></div></div>';
+  on("cfg_save_btn","click",doCfgSave);
+}
+
+function renderErr() {
+  var e=S.lastError||"";
+  var hint="";
+  if(e.indexOf("Permission denied")!==-1||e.indexOf("permission")!==-1)
+    hint='<br>→ Firebase-Regeln blockieren Zugriff. <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a> → Realtime Database → Regeln → <code>{"rules":{".read":true,".write":true}}</code> → Veröffentlichen.';
+  else if(e.indexOf("Failed to fetch")!==-1||e.indexOf("NetworkError")!==-1||e.indexOf("CORS")!==-1)
+    hint='<br>→ Netzwerkfehler oder falsche URL.';
+  else if(e.indexOf("404")!==-1)
+    hint='<br>→ Datenbank nicht gefunden.';
+  return'<div class="err-box"><b>⚠ VERBINDUNGSFEHLER</b>'+esc(e)+hint
+    +'<code>'+esc(dbUrl()||"")+'</code>'
+    +'<button onclick="clearCfg()" style="margin-top:10px;width:100%;padding:7px;border-radius:5px;border:1px solid #cc224430;background:transparent;color:#cc4466;cursor:pointer;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:2px">↺ URL ÄNDERN</button>'
+    +'</div>';
 }
 
 function renderHeader() {
-  var live = S.connected;
-  var badge = '<span class="conn '+(live?"live":"dead")+'"><span class="dot '+(live?"live":"dead")+'"></span>'+(live?"LIVE":"OFFLINE")+'</span>';
-  return '<div class="header">'
-    +'<div><div class="brand-sub">FRESHCELLS '+badge+'</div><div class="brand-title">QUIZ ADMIN</div></div>'
+  var live=S.connected;
+  var badge='<span class="conn '+(live?"live":"dead")+'"><span class="dot '+(live?"live":"dead")+'"></span>'+(live?"LIVE":"OFFLINE")+'</span>';
+  var fsBtn=S.mode==="dashboard"?'<button class="fs-btn" id="fs_btn">⛶</button>':'';
+  return'<div class="header">'
+    +'<div style="display:flex;align-items:center;gap:7px;flex-shrink:1;min-width:0;overflow:hidden">'
+    +'<div class="brand-title" style="white-space:nowrap">QUIZ</div>'+badge
+    +'</div>'
     +'<div class="tab-bar">'
     +'<button class="tab '+(S.mode==="admin"?"on":"off")+'" id="tab_admin">ADMIN</button>'
-    +'<button class="tab '+(S.mode==="setup"?"on":"off")+'" id="tab_setup">⚙ SETUP</button>'
+    +'<button class="tab '+(S.mode==="setup"?"on":"off")+'" id="tab_setup">SETUP</button>'
+    +'<button class="tab '+(S.mode==="dashboard"?"on":"off")+'" id="tab_dash">LIVE</button>'
+    +fsBtn
     +'</div></div>';
 }
 
 function renderModal() {
-  var m = S.modal;
-  return '<div class="overlay"><div class="mbox"><div class="mmsg">'+esc(m.msg)+'</div><div class="mbtns">'
+  var m=S.modal;
+  return'<div class="overlay"><div class="mbox"><div class="mmsg">'+esc(m.msg)+'</div><div class="mbtns">'
     +(m.type==="confirm"
       ?'<button class="mcancel" id="m_cancel">ABBRECHEN</button><button class="mconfirm" id="m_ok">LÖSCHEN</button>'
       :'<button class="mok" id="m_ok">OK</button>')
@@ -290,9 +312,9 @@ function renderModal() {
 }
 
 function renderAdmin() {
-  var ans = S.participants.filter(function(p){var v=S.pending[p];return v!==null&&v!==undefined;}).length;
-  var cols = Math.min(5,S.qCount);
-  var pcols = S.participants.length>10?3:2;
+  var ans=S.participants.filter(function(p){var v=S.pending[p];return v!==null&&v!==undefined;}).length;
+  var cols=Math.min(5,S.qCount);
+  var pcols=S.participants.length>10?3:2;
   var pills="";
   for(var q=0;q<S.qCount;q++){
     var cl=S.curQ===q?"cur":S.submitted[q]?"done":"idle";
@@ -300,10 +322,10 @@ function renderAdmin() {
   }
   var cards=S.participants.map(function(p){
     var v=S.pending[p];
-    return '<div class="pcard '+(v===true?"yes":v===false?"no":"")+'">'
+    return'<div class="pcard '+(v===true?"yes":v===false?"no":"")+'">'
       +'<div class="pname">'+esc(p)+'</div>'
       +'<div class="pbtns">'
-      +'<button class="pbtn y'+(v===true?" on":"") +'" data-p="'+esc(p)+'" data-v="1">✓</button>'
+      +'<button class="pbtn y'+(v===true?" on":"")+'" data-p="'+esc(p)+'" data-v="1">✓</button>'
       +'<button class="pbtn n'+(v===false?" on":"")+'" data-p="'+esc(p)+'" data-v="0">✗</button>'
       +'</div></div>';
   }).join("");
@@ -311,11 +333,11 @@ function renderAdmin() {
   var st=S.flash?"✓ GESPEICHERT!":"PUNKTE VERBUCHEN"+(ans>0?" ("+ans+"/"+S.participants.length+")":"");
   var rows=S.participants.map(function(p){
     var pts=(S.scores[p]||[]).filter(function(v){return v===true;}).length;
-    return '<div class="sb-row"><div class="sb-nm">'+esc(p)+'</div>'
+    return'<div class="sb-row"><div class="sb-nm">'+esc(p)+'</div>'
       +'<div class="sb-bg"><div class="sb-fill" style="width:'+(S.qCount>0?Math.round(pts/S.qCount*100):0)+'%"></div></div>'
       +'<div class="sb-pts" style="color:'+(pts>0?"#00ff88":"#2a2a3a")+'">'+pts+'</div></div>';
   }).join("");
-  return '<div class="panel">'
+  return'<div class="panel">'
     +'<div style="margin-bottom:15px"><div class="sec-lbl" style="margin-bottom:7px">FRAGE WÄHLEN</div>'
     +'<div class="q-grid" style="grid-template-columns:repeat('+cols+',1fr)">'+pills+'</div></div>'
     +'<div class="sbox"><div class="sbox-top">'
@@ -329,8 +351,9 @@ function renderAdmin() {
 
 function renderSetup() {
   var items=S.participants.map(function(p,i){
-    return '<div class="si">'
-      +(S.editIdx===i?'<input id="edit_inp" class="sei" value="'+esc(S.editVal)+'">':'<div class="sn">'+esc(p)+'</div>')
+    return'<div class="si">'
+      +(S.editIdx===i?'<input id="edit_inp" class="sei" value="'+esc(S.editVal)+'">'
+        :'<div class="sn">'+esc(p)+'</div>')
       +'<button class="ibtn edit" data-edit="'+i+'">'+(S.editIdx===i?"✓":"✎")+'</button>'
       +'<button class="ibtn del" data-del="'+esc(p)+'">✕</button></div>';
   }).join("");
@@ -342,7 +365,7 @@ function renderSetup() {
       +'<button class="ibtn del" '+(S.qCount<=1?"disabled":"")+'data-delq="'+i+'">✕</button></div>';
   }
   var answered=S.submitted.filter(Boolean).length;
-  return '<div class="panel">'
+  return'<div class="panel">'
     +'<div class="sec-hdr"><span class="sec-lbl">TEILNEHMER</span><span class="sec-cnt">'+S.participants.length+'</span><div class="sec-line"></div></div>'
     +'<div style="margin-bottom:14px">'+items+'</div>'
     +'<div class="add-row"><input id="new_inp" class="add-inp" placeholder="Neuer Teilnehmer...">'
@@ -357,22 +380,98 @@ function renderSetup() {
     +'</div></div></div>';
 }
 
-// ── Bind ──────────────────────────────────────────────────────────
-function bindCfg() {
-  on("cfg_save_btn","click",function(){
-    var url=(ge("cfg_url")||{}).value||"";
-    url=url.trim().replace(/\/$/,"");
-    if(!url.startsWith("https://")){showAlert("Bitte eine gültige URL eingeben.\nBeispiel:\nhttps://mein-quiz-default-rtdb.firebaseio.com");return;}
-    saveCfg({databaseURL:url});
-    // Initial connect
-    fbGet(function(data){if(data)applyRemote(data);render();});
-    render();
+function renderDashboard() {
+  var data=getChartData();
+  var qDone=S.submitted.filter(Boolean).length;
+  var lbHtml=data.map(function(d,i){
+    var cls=i===0&&d.pts>0?"f":i<3&&d.pts>0?"p":"r";
+    var rc=["r1","r2","r3"][i]||"rn";
+    return'<div class="lbc '+cls+'"><div class="lrank '+rc+'">#'+(i+1)+'</div>'
+      +'<div class="linfo"><div class="lname">'+esc(d.name)+'</div>'
+      +'<div class="lscore '+(i===0&&d.pts>0?"f":"r")+'">'+d.pts+'<span class="ldenom">/'+S.qCount+'</span></div>'
+      +'</div></div>';
+  }).join("");
+  return'<div class="dash">'
+    +'<div class="dash-topbar">'
+    +'<div class="logo"><div class="brand">FRESHCELLS</div><div class="title">QUIZ LIVE</div></div>'
+    +'<div class="dash-stats">'
+    +'<div class="pill">FRAGEN <span class="val">'+qDone+'/'+S.qCount+'</span></div>'
+    +'<div class="pill">TEAM <span class="val">'+S.participants.length+'</span></div>'
+    +'<div class="pill '+(S.connected?"":"dead")+'"><span class="dot-lg '+(S.connected?"live":"dead")+'"></span>'
+    +'<span class="val">'+(S.connected?"LIVE ↻"+S.tick:"OFFLINE")+'</span></div>'
+    +'</div></div>'
+    +'<div class="chart-wrap"><div class="chart-grid"></div><canvas id="qchart" style="position:relative;z-index:1"></canvas></div>'
+    +'<div class="lb">'+lbHtml+'</div>'
+    +'</div>';
+}
+
+function getChartData() {
+  return S.participants
+    .map(function(p){return{name:p,pts:(S.scores[p]||[]).filter(function(v){return v===true;}).length};})
+    .sort(function(a,b){return b.pts-a.pts;});
+}
+
+function drawChart() {
+  var canvas=ge("qchart"); if(!canvas)return;
+  if(typeof Chart==="undefined"){setTimeout(drawChart,300);return;}
+  var data=getChartData();
+  var maxPts=data.length?Math.max.apply(null,data.map(function(d){return d.pts;})):0;
+  var h=Math.max(260,Math.min(520,window.innerHeight*0.46));
+  canvas.style.height=h+"px";
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  var colors=data.map(function(d,i){
+    if(d.pts===maxPts&&maxPts>0)return"#00ff88";
+    if(i===1&&maxPts>0)return"#22cc66";
+    if(i===2&&maxPts>0)return"#119944";
+    return"hsl(145,50%,"+(18+(d.pts/Math.max(S.qCount,1))*30)+"%)";
+  });
+  var fs=Math.max(9,Math.min(14,Math.floor(170/Math.max(data.length,1))));
+  chartInst=new Chart(canvas,{
+    type:"bar",
+    data:{
+      labels:data.map(function(d){return d.name;}),
+      datasets:[{data:data.map(function(d){return d.pts;}),backgroundColor:colors,borderRadius:8,borderSkipped:false}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      animation:{duration:500,easing:"easeOutQuart",
+        onComplete:function(){
+          if(!chartInst)return;
+          var ctx=canvas.getContext("2d");
+          ctx.save();ctx.font="bold 14px 'Courier New'";ctx.fillStyle="#00ff88";ctx.textAlign="center";
+          chartInst.data.datasets.forEach(function(ds,di){
+            chartInst.getDatasetMeta(di).data.forEach(function(bar,idx){
+              if(ds.data[idx]>0)ctx.fillText(ds.data[idx],bar.x,bar.y-8);
+            });
+          });
+          ctx.restore();
+        }
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:"#0d1117",borderColor:"#00ff8830",borderWidth:1,
+          titleColor:"#00ff88",bodyColor:"#ccc",
+          titleFont:{family:"Courier New",size:13},bodyFont:{family:"Courier New",size:12},
+          callbacks:{label:function(ctx){return" "+ctx.raw+" / "+S.qCount+" Punkte";}}}
+      },
+      scales:{
+        x:{grid:{display:false},border:{color:"#1a2a1a"},ticks:{color:"#666",font:{family:"Courier New",size:fs}}},
+        y:{min:0,max:S.qCount,grid:{color:"#0d1a0d"},border:{display:false},
+           ticks:{color:"#444",font:{family:"Courier New",size:11},stepSize:Math.max(1,Math.ceil(S.qCount/5))}}
+      }
+    }
   });
 }
 
+// ── Bind ──────────────────────────────────────────────────────────
 function bindAll() {
   on("tab_admin","click",function(){S.mode="admin";render();});
   on("tab_setup","click",function(){S.mode="setup";render();});
+  on("tab_dash", "click",function(){S.mode="dashboard";render();});
+  on("fs_btn","click",function(){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
+    else document.exitFullscreen();
+  });
   on("m_ok","click",doModalOk);
   on("m_cancel","click",function(){S.modal=null;render();});
   on("sbtn","click",doSubmit);
@@ -382,7 +481,13 @@ function bindAll() {
   var ni=ge("new_inp");
   if(ni){ni.value=S.newName;ni.oninput=function(){S.newName=this.value;};ni.onkeydown=function(e){if(e.key==="Enter")doAdd();};}
   var ei=ge("edit_inp");
-  if(ei){ei.oninput=function(){S.editVal=this.value;};ei.onkeydown=function(e){if(e.key==="Enter")commitEdit();if(e.key==="Escape"){S.editIdx=null;render();}};ei.onblur=function(){setTimeout(commitEdit,150);};ei.focus();var len=ei.value.length;ei.setSelectionRange(len,len);}
+  if(ei){
+    ei.oninput=function(){S.editVal=this.value;};
+    ei.onkeydown=function(e){if(e.key==="Enter")commitEdit();if(e.key==="Escape"){S.editIdx=null;render();}};
+    ei.onblur=function(){setTimeout(commitEdit,150);};
+    ei.focus();
+    var len=ei.value.length; ei.setSelectionRange(len,len);
+  }
   document.querySelectorAll(".qpill").forEach(function(el){el.onclick=function(){S.curQ=+this.dataset.q;syncPending();render();};});
   document.querySelectorAll(".pbtn").forEach(function(el){
     el.onclick=function(){var p=this.dataset.p;var v=this.dataset.v==="1";S.pending[p]=S.pending[p]===v?null:v;render();};
@@ -402,6 +507,14 @@ function bindAll() {
 }
 
 // ── Actions ───────────────────────────────────────────────────────
+function doCfgSave() {
+  var url=(ge("cfg_url")||{}).value||"";
+  url=url.trim().replace(/\/$/,"");
+  if(!url.startsWith("https://")){showAlert("Bitte eine gültige URL eingeben.\nBeispiel:\nhttps://mein-quiz-default-rtdb.firebaseio.com");return;}
+  saveCfg({databaseURL:url});
+  fbGet(function(data){if(data)applyRemote(data);render();});
+  render();
+}
 function doModalOk(){
   var m=S.modal; S.modal=null;
   if(!m||m.type==="alert"){render();return;}
@@ -448,7 +561,6 @@ function commitEdit(){
 }
 
 // ── Init ──────────────────────────────────────────────────────────
-window.clearCfg = clearCfg;
 var c=getCfg();
 if(c){fbGet(function(data){if(data)applyRemote(data);render();});}
 else{render();}
