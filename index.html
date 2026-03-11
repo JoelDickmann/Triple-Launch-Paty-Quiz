@@ -381,16 +381,7 @@ function renderSetup() {
 }
 
 function renderDashboard() {
-  var data=getChartData();
   var qDone=S.submitted.filter(Boolean).length;
-  var lbHtml=data.map(function(d,i){
-    var cls=i===0&&d.pts>0?"f":i<3&&d.pts>0?"p":"r";
-    var rc=["r1","r2","r3"][i]||"rn";
-    return'<div class="lbc '+cls+'"><div class="lrank '+rc+'">#'+(i+1)+'</div>'
-      +'<div class="linfo"><div class="lname">'+esc(d.name)+'</div>'
-      +'<div class="lscore '+(i===0&&d.pts>0?"f":"r")+'">'+d.pts+'<span class="ldenom">/'+S.qCount+'</span></div>'
-      +'</div></div>';
-  }).join("");
   return'<div class="dash">'
     +'<div class="dash-topbar">'
     +'<div class="logo"><div class="brand">FRESHCELLS</div><div class="title">QUIZ LIVE</div></div>'
@@ -401,7 +392,6 @@ function renderDashboard() {
     +'<span class="val">'+(S.connected?"LIVE ↻"+S.tick:"OFFLINE")+'</span></div>'
     +'</div></div>'
     +'<div class="chart-wrap"><div class="chart-grid"></div><canvas id="qchart" style="position:relative;z-index:1"></canvas></div>'
-    +'<div class="lb">'+lbHtml+'</div>'
     +'</div>';
 }
 
@@ -417,7 +407,7 @@ function drawChart() {
   var data=getChartData();
   var maxPts=data.length?Math.max.apply(null,data.map(function(d){return d.pts;})):0;
   var hash=JSON.stringify(data)+'|'+S.qCount;
-  if(chartInst&&chartInst._hash===hash)return;
+  if(chartInst&&chartInst._hash===hash&&chartInst.canvas===canvas)return;
   var h=Math.max(260,Math.min(520,window.innerHeight*0.46));
   canvas.style.height=h+"px";
   if(chartInst){chartInst.destroy();chartInst=null;}
