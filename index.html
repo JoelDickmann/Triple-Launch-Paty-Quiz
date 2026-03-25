@@ -6,422 +6,1111 @@
 <title>Quiz Live</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: #07070f; color: #e0e0e0; font-family: 'Courier New', monospace; min-height: 100vh; overflow-x: hidden; }
-code { color: #00ff88; background: #001a0a; padding: 1px 5px; border-radius: 3px; font-family: 'Courier New', monospace; }
-pre { color: #00ff88; font-size: 10px; margin-top: 6px; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#07070f;color:#e0e0e0;font-family:'Courier New',monospace;min-height:100vh;overflow-x:hidden}
+code{color:#00ff88;background:#001a0a;padding:1px 5px;border-radius:3px;font-family:'Courier New',monospace}
+pre{color:#00ff88;font-size:10px;margin-top:6px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
 
-/* ── Config & Error ── */
-.cfg { max-width: 520px; margin: 0 auto; padding: 32px 16px; }
-.cfg-title { font-size: 22px; font-weight: bold; color: #00ff88; letter-spacing: 2px; margin-bottom: 4px; }
-.cfg-sub { font-size: 10px; color: #555; letter-spacing: 3px; margin-bottom: 24px; }
-.cfg-lbl { font-size: 9px; letter-spacing: 3px; color: #444; margin-bottom: 5px; }
-.cfg-inp { width: 100%; background: #0d0d17; border: 1px solid #252535; border-radius: 6px; color: #e0e0e0; padding: 11px 12px; font-family: 'Courier New', monospace; font-size: 12px; outline: none; margin-bottom: 10px; }
-.cfg-inp:focus { border-color: #00ff8840; }
-.cfg-save { width: 100%; padding: 13px; border-radius: 10px; border: none; background: linear-gradient(135deg,#00dd77,#00aa55); color: #000; font-size: 11px; font-weight: bold; letter-spacing: 4px; font-family: 'Courier New', monospace; cursor: pointer; margin-bottom: 8px; }
-.cfg-hint { padding: 16px; background: #0a0a14; border: 1px solid #1a2a1a; border-radius: 10px; font-size: 10px; color: #555; line-height: 2.1; }
-.cfg-hint a { color: #4a8fff; }
-.cfg-hint b { color: #aaa; }
-.cfg-rules { margin-top: 14px; padding: 12px; background: #0f1a0f; border: 1px solid #003318; border-radius: 8px; }
-.cfg-rules b { color: #00ff88; }
-.err-box { margin: 14px; padding: 14px; background: #1a000a; border: 1px solid #cc224440; border-radius: 10px; font-size: 10px; color: #cc6666; line-height: 1.8; }
-.err-box b { color: #ff4466; display: block; margin-bottom: 6px; letter-spacing: 2px; }
-.err-box code { display: block; margin-top: 8px; padding: 8px; background: #0f0006; border-radius: 4px; font-size: 9px; color: #ff6688; word-break: break-all; }
-.err-box a { color: #4a8fff; }
+/* Config & Error */
+.cfg{max-width:520px;margin:0 auto;padding:32px 16px}
+.cfg-title{font-size:22px;font-weight:bold;color:#00ff88;letter-spacing:2px;margin-bottom:4px}
+.cfg-sub{font-size:10px;color:#555;letter-spacing:3px;margin-bottom:24px}
+.cfg-lbl{font-size:9px;letter-spacing:3px;color:#444;margin-bottom:5px}
+.cfg-inp{width:100%;background:#0d0d17;border:1px solid #252535;border-radius:6px;color:#e0e0e0;padding:11px 12px;font-family:'Courier New',monospace;font-size:12px;outline:none;margin-bottom:10px}
+.cfg-inp:focus{border-color:#00ff8840}
+.cfg-save{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#00dd77,#00aa55);color:#000;font-size:11px;font-weight:bold;letter-spacing:4px;font-family:'Courier New',monospace;cursor:pointer;margin-bottom:8px}
+.cfg-hint{padding:16px;background:#0a0a14;border:1px solid #1a2a1a;border-radius:10px;font-size:10px;color:#555;line-height:2.1}
+.cfg-hint a{color:#4a8fff}
+.cfg-hint b{color:#aaa}
+.cfg-rules{margin-top:14px;padding:12px;background:#0f1a0f;border:1px solid #003318;border-radius:8px}
+.cfg-rules b{color:#00ff88}
+.err-box{margin:14px;padding:14px;background:#1a000a;border:1px solid #cc224440;border-radius:10px;font-size:10px;color:#cc6666;line-height:1.8}
+.err-box b{color:#ff4466;display:block;margin-bottom:6px;letter-spacing:2px}
+.err-box code{display:block;margin-top:8px;padding:8px;background:#0f0006;border-radius:4px;font-size:9px;color:#ff6688;word-break:break-all}
 
-/* ── Header ── */
-.header { background: linear-gradient(180deg,#0d1117,#090912); border-bottom: 1px solid #00ff8830; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-.brand-sub { font-size: 8px; letter-spacing: 5px; color: #00ff88; margin-bottom: 1px; }
-.brand-title { font-size: 16px; font-weight: bold; color: #fff; letter-spacing: 3px; }
-.tab-bar { display: flex; gap: 5px; }
-.tab { padding: 6px 9px; border-radius: 5px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 8px; letter-spacing: 1px; border: 1px solid; transition: all .15s; background: transparent; white-space: nowrap; }
-.tab.on { border-color: #00ff88; background: #00ff8812; color: #00ff88; }
-.tab.off { border-color: #1e1e2e; color: #444; }
-.conn { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; letter-spacing: 2px; padding: 2px 7px; border-radius: 20px; }
-.conn.live { border: 1px solid #003318; background: #001a0a; color: #00aa55; }
-.conn.dead { border: 1px solid #330010; background: #1a000a; color: #aa2244; }
-.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-.dot.live { background: #00ff88; animation: blink 2s infinite; }
-.dot.dead { background: #cc2244; }
+/* Role Selection */
+.role-wrap{max-width:400px;margin:0 auto;padding:80px 16px;text-align:center}
+.role-title{font-size:28px;font-weight:bold;color:#00ff88;letter-spacing:3px;margin-bottom:6px}
+.role-sub{font-size:10px;color:#555;letter-spacing:4px;margin-bottom:40px}
+.role-btn{width:100%;padding:20px;border-radius:12px;border:2px solid;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;letter-spacing:4px;cursor:pointer;margin-bottom:12px;transition:all .2s}
+.role-btn.admin{border-color:#4a8fff40;background:#0a1a2a;color:#4a8fff}
+.role-btn.admin:hover{border-color:#4a8fff;background:#0d2040}
+.role-btn.player{border-color:#00ff8840;background:#001a0a;color:#00ff88}
+.role-btn.player:hover{border-color:#00ff88;background:#002d12}
+.role-back{margin-top:20px;background:none;border:none;color:#333;font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;text-decoration:underline}
 
-/* ── Admin & Setup ── */
-.panel { padding: 14px; max-width: 480px; margin: 0 auto; }
-.sec-hdr { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
-.sec-lbl { font-size: 9px; letter-spacing: 4px; color: #444; }
-.sec-cnt { font-size: 9px; color: #00ff88; background: #001a0a; border: 1px solid #003318; border-radius: 20px; padding: 1px 7px; }
-.sec-line { flex: 1; height: 1px; background: linear-gradient(90deg,#1a2a1a,transparent); }
-.q-grid { display: grid; gap: 4px; margin-bottom: 15px; }
-.qpill { padding: 9px 4px; border-radius: 6px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 12px; font-weight: bold; position: relative; transition: all .15s; border: 1px solid; background: transparent; }
-.qpill.cur { border-color: #00ff88; background: #00ff8812; color: #00ff88; }
-.qpill.done { border-color: #003318; background: #001a0a; color: #00aa55; }
-.qpill.idle { border-color: #1c1c28; background: #0d0d17; color: #444; }
-.qchk { position: absolute; top: 2px; right: 3px; font-size: 6px; color: #00ff88; }
-.sbox { background: linear-gradient(145deg,#0d1117,#0f0f1e); border: 1px solid #1a2a1a; border-radius: 14px; padding: 14px; margin-bottom: 11px; }
-.sbox-top { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.qnum-lbl { font-size: 8px; letter-spacing: 4px; color: #555; margin-bottom: 2px; }
-.qnum-big { font-size: 36px; font-weight: bold; color: #fff; line-height: 1; }
-.qnum-big span { font-size: 14px; color: #333; }
-.mrk-lbl { font-size: 8px; color: #555; letter-spacing: 2px; text-align: right; }
-.mrk-num { font-size: 22px; font-weight: bold; text-align: right; }
-.mrk-num span { font-size: 12px; color: #333; }
-.pgrid { display: grid; gap: 6px; }
-.pcard { background: #09090f; border-radius: 7px; padding: 8px 9px; border: 1px solid #191926; transition: border-color .2s; }
-.pcard.yes { border-color: #00ff8840; }
-.pcard.no { border-color: #ff334430; }
-.pname { font-size: 9px; color: #555; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pbtns { display: flex; gap: 4px; }
-.pbtn { flex: 1; padding: 6px 3px; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; font-weight: bold; transition: all .15s; }
-.pbtn.y { background: #0f1f0f; color: #007733; }
-.pbtn.y.on { background: #00ff88; color: #000; }
-.pbtn.n { background: #1f0f0f; color: #772233; }
-.pbtn.n.on { background: #cc2233; color: #fff; }
-.sbtn { width: 100%; padding: 13px; border-radius: 10px; border: none; font-size: 11px; font-weight: bold; letter-spacing: 4px; font-family: 'Courier New', monospace; transition: all .2s; margin-bottom: 9px; cursor: pointer; }
-.sbtn.ready { background: linear-gradient(135deg,#00dd77,#00aa55); color: #000; box-shadow: 0 0 20px #00ff8820; }
-.sbtn.flash { background: #00ff88; color: #000; }
-.sbtn.off { background: #0d1a10; color: #1a3a20; cursor: default; }
-.sb { background: #0a0a14; border-radius: 10px; padding: 12px; border: 1px solid #161622; margin-bottom: 9px; }
-.sb-lbl { font-size: 8px; letter-spacing: 4px; color: #444; margin-bottom: 8px; }
-.sb-row { margin-bottom: 4px; display: flex; align-items: center; gap: 7px; }
-.sb-nm { width: 52px; font-size: 9px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sb-bg { flex: 1; background: #161622; border-radius: 2px; height: 5px; overflow: hidden; }
-.sb-fill { height: 100%; background: #00ff88; border-radius: 2px; transition: width .5s; }
-.sb-pts { width: 24px; text-align: right; font-size: 10px; font-weight: bold; }
-.rbtn { width: 100%; padding: 8px; border-radius: 7px; background: transparent; border: 1px solid #2a0010; color: #552233; cursor: pointer; font-size: 9px; letter-spacing: 3px; font-family: 'Courier New', monospace; margin-bottom: 14px; }
-.si { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; background: #0a0a14; border: 1px solid #161622; border-radius: 8px; padding: 8px 10px; }
-.sn { flex: 1; font-size: 13px; color: #bbb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sei { flex: 1; background: #001a0a; border: 1px solid #00ff8850; border-radius: 5px; color: #00ff88; padding: 5px 8px; font-family: 'Courier New', monospace; font-size: 12px; outline: none; }
-.add-row { display: flex; gap: 7px; margin-bottom: 24px; }
-.add-inp { flex: 1; background: #0d0d17; border: 1px solid #252535; border-radius: 6px; color: #e0e0e0; padding: 8px 11px; font-family: 'Courier New', monospace; font-size: 12px; outline: none; }
-.add-inp:focus { border-color: #00ff8840; }
-.add-btn { padding: 8px 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 18px; line-height: 1; flex-shrink: 0; cursor: pointer; border: 1px solid #00ff8860; background: #001a0a; color: #00ff88; }
-.add-btn:disabled { border-color: #1e1e2e; background: transparent; color: #333; cursor: default; }
-.qi { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; background: #0a0a14; border-radius: 8px; padding: 9px 12px; border: 1px solid #161622; }
-.qi.done { border-color: #003318; }
-.qibadge { font-size: 8px; letter-spacing: 3px; padding: 2px 7px; border-radius: 3px; flex-shrink: 0; }
-.qibadge.idle { background: #111118; border: 1px solid #1e1e2e; color: #333; }
-.qibadge.done { background: #001a0a; border: 1px solid #003318; color: #00ff88; }
-.qiname { flex: 1; font-size: 13px; letter-spacing: 1px; }
-.qiname.idle { color: #555; }
-.qiname.done { color: #00aa55; }
-.addq { width: 100%; padding: 11px; border-radius: 8px; border: 1px dashed #00ff8828; background: transparent; color: #00ff8866; cursor: pointer; font-size: 11px; letter-spacing: 3px; font-family: 'Courier New', monospace; transition: all .2s; margin-bottom: 20px; }
-.addq:hover { border-color: #00ff8866; color: #00ff88; background: #001a0a18; }
-.ibox { padding: 14px; background: #0d0d1a; border: 1px solid #1c1c2e; border-radius: 10px; }
-.ibox-lbl { font-size: 8px; letter-spacing: 4px; color: #333; margin-bottom: 10px; }
-.ibox-row { display: flex; gap: 24px; }
-.istat-v { font-size: 24px; font-weight: bold; color: #00ff88; line-height: 1; }
-.istat-l { font-size: 8px; color: #444; letter-spacing: 2px; margin-top: 3px; }
-.ibtn { width: 28px; height: 28px; border-radius: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; transition: all .15s; background: transparent; font-family: 'Courier New', monospace; }
-.ibtn.edit { border: 1px solid #4a8fff25; color: #4a8fff77; }
-.ibtn.edit:hover { border-color: #4a8fff55; background: #4a8fff15; color: #4a8fff; }
-.ibtn.del { border: 1px solid #cc334425; color: #cc334477; }
-.ibtn.del:hover { border-color: #cc334455; background: #cc334415; color: #cc3344; }
-.ibtn:disabled { border-color: #1a1a2a !important; color: #252535 !important; background: transparent !important; cursor: default; }
-.overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.85); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
-.mbox { background: #0f0f1e; border: 1px solid #00ff8840; border-radius: 14px; padding: 28px 24px; max-width: 340px; width: 100%; box-shadow: 0 0 60px #00ff8812; }
-.mmsg { font-size: 13px; color: #ccc; line-height: 1.7; margin-bottom: 24px; white-space: pre-line; }
-.mbtns { display: flex; gap: 9px; justify-content: flex-end; }
-.mcancel { padding: 9px 18px; border-radius: 7px; border: 1px solid #252535; background: transparent; color: #555; cursor: pointer; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; }
-.mconfirm { padding: 9px 18px; border-radius: 7px; border: none; background: #cc2233; color: #fff; cursor: pointer; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; font-weight: bold; }
-.mok { padding: 9px 18px; border-radius: 7px; border: none; background: #1a2a3a; color: #4a8fff; cursor: pointer; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; font-weight: bold; }
+/* Header */
+.header{background:linear-gradient(180deg,#0d1117,#090912);border-bottom:1px solid #00ff8830;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.brand-sub{font-size:8px;letter-spacing:5px;color:#00ff88;margin-bottom:1px}
+.brand-title{font-size:16px;font-weight:bold;color:#fff;letter-spacing:3px}
+.tab-bar{display:flex;gap:5px}
+.tab{padding:6px 9px;border-radius:5px;cursor:pointer;font-family:'Courier New',monospace;font-size:8px;letter-spacing:1px;border:1px solid;transition:all .15s;background:transparent;white-space:nowrap}
+.tab.on{border-color:#00ff88;background:#00ff8812;color:#00ff88}
+.tab.off{border-color:#1e1e2e;color:#444}
+.conn{display:inline-flex;align-items:center;gap:4px;font-size:8px;letter-spacing:2px;padding:2px 7px;border-radius:20px}
+.conn.live{border:1px solid #003318;background:#001a0a;color:#00aa55}
+.conn.dead{border:1px solid #330010;background:#1a000a;color:#aa2244}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot.live{background:#00ff88;animation:blink 2s infinite}
+.dot.dead{background:#cc2244}
 
-/* ── Dashboard ── */
-.dash { padding: clamp(14px,3vw,48px); max-width: 1800px; margin: 0 auto; }
-.dash-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(14px,3vh,32px); flex-wrap: wrap; gap: 10px; }
-.logo .brand { font-size: clamp(8px,1vw,11px); letter-spacing: 5px; color: #00ff88; margin-bottom: 2px; }
-.logo .title { font-size: clamp(26px,5vw,72px); font-weight: bold; color: #fff; letter-spacing: -1px; line-height: 1; }
-.dash-stats { display: flex; gap: clamp(8px,1.5vw,18px); flex-wrap: wrap; align-items: center; }
-.pill { font-size: clamp(9px,1vw,12px); letter-spacing: 2px; background: #0a0a14; border: 1px solid #161622; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; gap: 6px; color: #444; }
-.pill .val { color: #00ff88; }
-.pill.dead .val { color: #cc2244; }
-.pill .dot-lg { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.pill .dot-lg.live { background: #00ff88; animation: blink 2s infinite; }
-.pill .dot-lg.dead { background: #cc2244; }
-.chart-wrap { background: linear-gradient(180deg,#0d1117,#090910); border: 1px solid #0f1f0f; border-radius: 20px; padding: clamp(16px,3vw,44px) clamp(12px,2.5vw,28px) clamp(12px,2vw,22px); position: relative; overflow: hidden; margin-bottom: clamp(12px,2.5vh,26px); box-shadow: 0 0 80px #00ff8806, inset 0 1px 0 #00ff8815; }
-.chart-grid { position: absolute; inset: 0; opacity: .018; pointer-events: none; background-image: linear-gradient(#00ff88 1px,transparent 1px), linear-gradient(90deg,#00ff88 1px,transparent 1px); background-size: 60px 60px; }
-.lb { display: grid; grid-template-columns: repeat(auto-fill,minmax(clamp(110px,11vw,190px),1fr)); gap: clamp(6px,1vw,11px); }
-.lbc { border-radius: 12px; padding: clamp(8px,1.2vw,15px) clamp(9px,1.5vw,17px); display: flex; align-items: center; gap: clamp(6px,.8vw,11px); }
-.lbc.f { background: linear-gradient(145deg,#001a0a,#002d12); border: 1px solid #00ff8440; box-shadow: 0 0 28px #00ff8810; }
-.lbc.p { background: #0a0a12; border: 1px solid #0f2a0f; }
-.lbc.r { background: #0a0a12; border: 1px solid #121220; }
-.lrank { font-weight: bold; flex-shrink: 0; font-size: clamp(14px,2vw,25px); }
-.lrank.r1 { color: #00ff88; } .lrank.r2 { color: #888; } .lrank.r3 { color: #b87333; } .lrank.rn { color: #1e1e2e; }
-.linfo { flex: 1; min-width: 0; }
-.lname { font-size: clamp(9px,1vw,12px); color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lscore { font-weight: bold; line-height: 1.1; font-size: clamp(16px,2.5vw,30px); }
-.lscore.f { color: #00ff88; } .lscore.r { color: #eee; }
-.ldenom { font-size: clamp(8px,.9vw,12px); color: #2a2a3a; }
-.fs-btn { padding: 7px 11px; border-radius: 5px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2px; border: 1px solid #00ff8825; background: transparent; color: #00ff8866; transition: all .15s; }
-.fs-btn:hover { border-color: #00ff8855; color: #00ff88; background: #001a0a; }
+/* Panel / Admin */
+.panel{padding:14px;max-width:480px;margin:0 auto}
+.sec-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.sec-lbl{font-size:9px;letter-spacing:4px;color:#444}
+.sec-cnt{font-size:9px;color:#00ff88;background:#001a0a;border:1px solid #003318;border-radius:20px;padding:1px 7px}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,#1a2a1a,transparent)}
+.sbox{background:linear-gradient(145deg,#0d1117,#0f0f1e);border:1px solid #1a2a1a;border-radius:14px;padding:14px;margin-bottom:11px}
+.sbtn{width:100%;padding:13px;border-radius:10px;border:none;font-size:11px;font-weight:bold;letter-spacing:4px;font-family:'Courier New',monospace;transition:all .2s;margin-bottom:9px;cursor:pointer}
+.sbtn.ready{background:linear-gradient(135deg,#00dd77,#00aa55);color:#000;box-shadow:0 0 20px #00ff8820}
+.sbtn.flash{background:#00ff88;color:#000}
+.sbtn.off{background:#0d1a10;color:#1a3a20;cursor:default}
+.sbtn.warn{background:linear-gradient(135deg,#dd7700,#aa5500);color:#000}
+.sbtn.blue{background:linear-gradient(135deg,#3377ff,#2255cc);color:#fff}
+.rbtn{width:100%;padding:8px;border-radius:7px;background:transparent;border:1px solid #2a0010;color:#552233;cursor:pointer;font-size:9px;letter-spacing:3px;font-family:'Courier New',monospace;margin-bottom:14px}
+.sb{background:#0a0a14;border-radius:10px;padding:12px;border:1px solid #161622;margin-bottom:9px}
+.sb-lbl{font-size:8px;letter-spacing:4px;color:#444;margin-bottom:8px}
+.sb-row{margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.sb-nm{width:70px;font-size:9px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-bg{flex:1;background:#161622;border-radius:2px;height:5px;overflow:hidden}
+.sb-fill{height:100%;background:#00ff88;border-radius:2px;transition:width .5s}
+.sb-pts{width:24px;text-align:right;font-size:10px;font-weight:bold}
+.nav-row{display:flex;gap:8px;margin-bottom:9px}
+.nav-btn{flex:1;padding:10px;border-radius:8px;border:1px solid #252535;background:transparent;color:#666;cursor:pointer;font-size:9px;letter-spacing:2px;font-family:'Courier New',monospace;transition:all .15s}
+.nav-btn:hover{border-color:#00ff8840;color:#00ff88}
+.nav-btn:disabled{border-color:#1a1a2a;color:#252535;cursor:default}
+
+/* Setup items */
+.si{display:flex;align-items:center;gap:7px;margin-bottom:5px;background:#0a0a14;border:1px solid #161622;border-radius:8px;padding:8px 10px}
+.sn{flex:1;font-size:13px;color:#bbb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ibtn{width:28px;height:28px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;transition:all .15s;background:transparent;font-family:'Courier New',monospace}
+.ibtn.del{border:1px solid #cc334425;color:#cc334477}
+.ibtn.del:hover{border-color:#cc334455;background:#cc334415;color:#cc3344}
+.ibtn:disabled{border-color:#1a1a2a!important;color:#252535!important;background:transparent!important;cursor:default}
+.addq{width:100%;padding:11px;border-radius:8px;border:1px dashed #00ff8828;background:transparent;color:#00ff8866;cursor:pointer;font-size:11px;letter-spacing:3px;font-family:'Courier New',monospace;transition:all .2s;margin-bottom:20px}
+.addq:hover{border-color:#00ff8866;color:#00ff88;background:#001a0a18}
+
+/* Question Card in Setup */
+.q-card{background:#0a0a14;border:1px solid #1a1a2a;border-radius:10px;padding:12px;margin-bottom:8px}
+.q-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.q-card-num{font-size:11px;font-weight:bold;color:#00ff88;flex-shrink:0}
+.q-card-inp{flex:1;background:#0d0d17;border:1px solid #252535;border-radius:5px;color:#e0e0e0;padding:6px 8px;font-family:'Courier New',monospace;font-size:11px;outline:none}
+.q-card-inp:focus{border-color:#00ff8840}
+.q-type-bar{display:flex;gap:4px;margin-bottom:8px}
+.q-type-btn{flex:1;padding:6px;border-radius:5px;border:1px solid #1e1e2e;background:transparent;color:#444;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer;transition:all .15s}
+.q-type-btn.active{border-color:#00ff88;background:#00ff8812;color:#00ff88}
+.opt-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.opt-radio{width:16px;height:16px;accent-color:#00ff88;cursor:pointer;flex-shrink:0}
+.opt-inp{flex:1;background:#0d0d17;border:1px solid #1e1e2e;border-radius:4px;color:#ccc;padding:5px 7px;font-family:'Courier New',monospace;font-size:10px;outline:none}
+.opt-inp:focus{border-color:#00ff8840}
+.opt-del{background:none;border:none;color:#552233;cursor:pointer;font-size:14px;padding:2px 4px}
+.opt-add{width:100%;padding:5px;border-radius:4px;border:1px dashed #00ff8828;background:transparent;color:#00ff8866;cursor:pointer;font-size:9px;letter-spacing:2px;font-family:'Courier New',monospace;margin-top:4px}
+
+/* Admin Answer Review */
+.ans-card{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#09090f;border:1px solid #191926;border-radius:7px;margin-bottom:4px}
+.ans-card.correct{border-color:#00ff8840}
+.ans-card.wrong{border-color:#ff334420}
+.ans-nm{font-size:10px;color:#666;width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.ans-val{flex:1;font-size:11px;color:#bbb}
+.ans-badge{font-size:8px;letter-spacing:2px;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.ans-badge.right{background:#001a0a;border:1px solid #003318;color:#00ff88}
+.ans-badge.wrong{background:#1a000a;border:1px solid #330010;color:#cc3344}
+.ans-badge.wait{background:#111118;border:1px solid #1e1e2e;color:#555}
+.ans-toggle{width:28px;height:28px;border-radius:5px;border:1px solid #252535;background:transparent;color:#444;cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace}
+.ans-toggle.on{border-color:#00ff88;background:#001a0a;color:#00ff88}
+.dist-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:10px}
+.dist-lbl{width:28px;font-weight:bold;color:#666;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dist-lbl.ok{color:#00ff88}
+.dist-bg{flex:1;background:#161622;border-radius:3px;height:8px;overflow:hidden}
+.dist-fill{height:100%;border-radius:3px;transition:width .3s;background:#333}
+.dist-fill.ok{background:#00ff88}
+.dist-cnt{width:20px;text-align:right;color:#555;font-size:10px}
+
+/* Player Screens */
+.p-wrap{max-width:420px;margin:0 auto;padding:40px 16px}
+.p-center{text-align:center}
+.p-title{font-size:28px;font-weight:bold;color:#00ff88;letter-spacing:3px;margin-bottom:6px}
+.p-sub{font-size:10px;color:#555;letter-spacing:4px;margin-bottom:30px}
+.p-label{font-size:9px;letter-spacing:3px;color:#444;margin-bottom:6px}
+.p-inp{width:100%;background:#0d0d17;border:2px solid #252535;border-radius:10px;color:#e0e0e0;padding:14px;font-family:'Courier New',monospace;font-size:16px;outline:none;margin-bottom:12px;text-align:center}
+.p-inp:focus{border-color:#00ff8860}
+.p-btn{width:100%;padding:16px;border-radius:10px;border:none;background:linear-gradient(135deg,#00dd77,#00aa55);color:#000;font-size:12px;font-weight:bold;letter-spacing:4px;font-family:'Courier New',monospace;cursor:pointer}
+.p-btn:disabled{background:#1a2a1a;color:#334433;cursor:default}
+.p-header{background:#0d1117;border-bottom:1px solid #00ff8820;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.p-name-tag{font-size:10px;color:#00ff88;letter-spacing:2px}
+.p-score-tag{font-size:10px;color:#888;letter-spacing:1px}
+.p-score-tag b{color:#00ff88}
+.p-body{padding:20px 16px;max-width:420px;margin:0 auto}
+.p-qnum{font-size:9px;letter-spacing:4px;color:#555;margin-bottom:8px}
+.p-qtext{font-size:18px;color:#fff;font-weight:bold;margin-bottom:24px;line-height:1.4}
+.mc-btn{width:100%;padding:16px 14px;border-radius:10px;border:2px solid #1e1e2e;background:#0d0d17;color:#bbb;font-family:'Courier New',monospace;font-size:14px;cursor:pointer;margin-bottom:8px;text-align:left;transition:all .15s;display:flex;align-items:center;gap:12px}
+.mc-btn:active{transform:scale(.98)}
+.mc-btn.sel{border-color:#00ff88;background:#001a0a;color:#00ff88}
+.mc-ltr{font-size:11px;font-weight:bold;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#161622;color:#666;flex-shrink:0}
+.mc-btn.sel .mc-ltr{background:#00ff88;color:#000}
+.free-area{width:100%;background:#0d0d17;border:2px solid #252535;border-radius:10px;color:#e0e0e0;padding:14px;font-family:'Courier New',monospace;font-size:14px;outline:none;resize:vertical;min-height:80px;margin-bottom:12px}
+.free-area:focus{border-color:#00ff8860}
+.p-status{text-align:center;margin-top:16px;font-size:10px;letter-spacing:3px}
+.p-status.ok{color:#00ff88}
+.p-status.wait{color:#555}
+.lobby-anim{font-size:32px;color:#00ff88;animation:pulse 2s infinite;margin:40px 0 20px}
+.lobby-msg{font-size:12px;color:#555;letter-spacing:2px}
+.lobby-count{font-size:10px;color:#333;letter-spacing:2px;margin-top:12px}
+
+/* Dashboard */
+.dash{padding:clamp(14px,3vw,48px);max-width:1800px;margin:0 auto}
+.dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:clamp(14px,3vh,32px);flex-wrap:wrap;gap:10px}
+.logo .brand{font-size:clamp(8px,1vw,11px);letter-spacing:5px;color:#00ff88;margin-bottom:2px}
+.logo .title{font-size:clamp(26px,5vw,72px);font-weight:bold;color:#fff;letter-spacing:-1px;line-height:1}
+.dash-stats{display:flex;gap:clamp(8px,1.5vw,18px);flex-wrap:wrap;align-items:center}
+.pill{font-size:clamp(9px,1vw,12px);letter-spacing:2px;background:#0a0a14;border:1px solid #161622;border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;color:#444}
+.pill .val{color:#00ff88}
+.pill.dead .val{color:#cc2244}
+.pill .dot-lg{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pill .dot-lg.live{background:#00ff88;animation:blink 2s infinite}
+.pill .dot-lg.dead{background:#cc2244}
+.chart-wrap{background:linear-gradient(180deg,#0d1117,#090910);border:1px solid #0f1f0f;border-radius:20px;padding:clamp(16px,3vw,44px) clamp(12px,2.5vw,28px) clamp(12px,2vw,22px);position:relative;overflow:hidden;margin-bottom:clamp(12px,2.5vh,26px);box-shadow:0 0 80px #00ff8806,inset 0 1px 0 #00ff8815}
+.chart-grid{position:absolute;inset:0;opacity:.018;pointer-events:none;background-image:linear-gradient(#00ff88 1px,transparent 1px),linear-gradient(90deg,#00ff88 1px,transparent 1px);background-size:60px 60px}
+.fs-btn{padding:7px 11px;border-radius:5px;cursor:pointer;font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;border:1px solid #00ff8825;background:transparent;color:#00ff8866;transition:all .15s}
+.fs-btn:hover{border-color:#00ff8855;color:#00ff88;background:#001a0a}
+
+/* Modal */
+.overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
+.mbox{background:#0f0f1e;border:1px solid #00ff8840;border-radius:14px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 0 60px #00ff8812}
+.mmsg{font-size:13px;color:#ccc;line-height:1.7;margin-bottom:24px;white-space:pre-line}
+.mbtns{display:flex;gap:9px;justify-content:flex-end}
+.mcancel{padding:9px 18px;border-radius:7px;border:1px solid #252535;background:transparent;color:#555;cursor:pointer;font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px}
+.mconfirm{padding:9px 18px;border-radius:7px;border:none;background:#cc2233;color:#fff;cursor:pointer;font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;font-weight:bold}
+.mok{padding:9px 18px;border-radius:7px;border:none;background:#1a2a3a;color:#4a8fff;cursor:pointer;font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;font-weight:bold}
+
+/* Leaderboard */
+.lb{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(110px,11vw,190px),1fr));gap:clamp(6px,1vw,11px)}
+.lbc{border-radius:12px;padding:clamp(8px,1.2vw,15px) clamp(9px,1.5vw,17px);display:flex;align-items:center;gap:clamp(6px,.8vw,11px)}
+.lbc.f{background:linear-gradient(145deg,#001a0a,#002d12);border:1px solid #00ff8440;box-shadow:0 0 28px #00ff8810}
+.lbc.p{background:#0a0a12;border:1px solid #0f2a0f}
+.lbc.r{background:#0a0a12;border:1px solid #121220}
+.lrank{font-weight:bold;flex-shrink:0;font-size:clamp(14px,2vw,25px)}
+.lrank.r1{color:#00ff88}.lrank.r2{color:#888}.lrank.r3{color:#b87333}.lrank.rn{color:#1e1e2e}
+.linfo{flex:1;min-width:0}
+.lname{font-size:clamp(9px,1vw,12px);color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lscore{font-weight:bold;line-height:1.1;font-size:clamp(16px,2.5vw,30px)}
+.lscore.f{color:#00ff88}.lscore.r{color:#eee}
+.ldenom{font-size:clamp(8px,.9vw,12px);color:#2a2a3a}
+
+/* Result screen for player */
+.result-rank{font-size:48px;font-weight:bold;color:#00ff88;margin:20px 0 8px}
+.result-score{font-size:20px;color:#fff;margin-bottom:4px}
+.result-total{font-size:11px;color:#555;letter-spacing:2px;margin-bottom:30px}
+.result-list{text-align:left}
+.result-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #111}
+.result-pos{width:24px;font-size:11px;font-weight:bold;color:#444}
+.result-pos.me{color:#00ff88}
+.result-nm{flex:1;font-size:11px;color:#888}
+.result-nm.me{color:#00ff88}
+.result-pt{font-size:12px;font-weight:bold;color:#555}
+.result-pt.me{color:#00ff88}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-var DP = ["Alex","Beni","Clara","David","Emma","Finn","Greta","Hans","Ida","Jonas","Klara","Leon"];
-var DQ = 10;
-var DQT = Array(DQ).fill(0).map(function(_,i){return "Frage "+(i+1);});
-var S = {
-  mode: "admin",
-  participants: DP.slice(), qCount: DQ, curQ: 0,
-  questions: DQT.slice(),
-  scores: {}, pending: {}, submitted: Array(DQ).fill(false),
-  flash: false, modal: null, editIdx: null, editVal: "", editQIdx: null, editQVal: "", newName: "",
-  connected: false, lastError: null, tick: 0
+// ── Constants ────────────────────────────────────────────────────────
+var ADMIN_PW="8757";
+var POLL_MS=2000;
+var LETTERS=["A","B","C","D","E","F","G","H"];
+
+// ── State ────────────────────────────────────────────────────────────
+var S={
+  mode:"control",
+  gameState:"lobby",currentQuestion:0,qCount:0,
+  questions:[],players:{},answers:{},scores:{},submitted:[],
+  freeCorrect:{},flash:false,modal:null,
+  connected:false,lastError:null,tick:0
 };
-var chartInst = null;
-var lastRenderHash = "";
+var chartInst=null;
+var lastPollHash="";
 
-// ── Firebase ───────────────────────────────────────────────────────
-function getCfg()  { try{return JSON.parse(localStorage.getItem("quiz_cfg")||"null");}catch(e){return null;} }
-function saveCfg(c){ localStorage.setItem("quiz_cfg",JSON.stringify(c)); }
-function clearCfg(){ localStorage.removeItem("quiz_cfg"); render(); }
-function dbUrl()   { var c=getCfg(); if(!c)return null; return c.databaseURL.replace(/\/$/,"")+"/quiz.json"; }
+// ── LocalStorage ─────────────────────────────────────────────────────
+function getCfg(){try{return JSON.parse(localStorage.getItem("quiz_cfg")||"null")}catch(e){return null}}
+function saveCfg(c){localStorage.setItem("quiz_cfg",JSON.stringify(c))}
+function clearCfg(){localStorage.removeItem("quiz_cfg");render()}
+function getRole(){return localStorage.getItem("quiz_role")}
+function setRole(r){localStorage.setItem("quiz_role",r)}
+function getPlayerName(){return localStorage.getItem("quiz_player")||""}
+function setPlayerName(n){localStorage.setItem("quiz_player",n)}
+function isAdminAuth(){return localStorage.getItem("quiz_admin")==="1"}
+function setAdminAuth(){localStorage.setItem("quiz_admin","1")}
+function clearSession(){localStorage.removeItem("quiz_role");localStorage.removeItem("quiz_player");localStorage.removeItem("quiz_admin")}
 
-function fbFetch(method, body, cb) {
-  var url=dbUrl(); if(!url)return;
+// ── Firebase REST ────────────────────────────────────────────────────
+function dbBase(){var c=getCfg();if(!c)return null;return c.databaseURL.replace(/\/$/,"")+"/quiz"}
+function fbKey(s){return String(s).replace(/[.#$\/\[\]]/g,"_")}
+
+function fbRequest(method,path,body,cb){
+  var base=dbBase();if(!base)return;
+  var url=base+(path?"/"+path:"")+".json";
   var opts={method:method,headers:{"Content-Type":"application/json"}};
-  if(body!==null) opts.body=JSON.stringify(body);
+  if(body!==null&&body!==undefined)opts.body=JSON.stringify(body);
   fetch(url,opts)
-    .then(function(r){ return r.text().then(function(t){return{ok:r.ok,status:r.status,text:t};}); })
+    .then(function(r){return r.text().then(function(t){return{ok:r.ok,status:r.status,text:t}})})
     .then(function(res){
-      var parsed; try{parsed=JSON.parse(res.text);}catch(e){parsed=null;}
+      var parsed;try{parsed=JSON.parse(res.text)}catch(e){parsed=null}
       if(!res.ok||(parsed&&typeof parsed==="object"&&parsed!==null&&parsed.error)){
         var msg=(parsed&&parsed.error)?parsed.error:("HTTP "+res.status+" — "+res.text.slice(0,200));
         throw new Error(msg);
       }
-      S.connected=true; S.lastError=null; S.tick++;
-      if(cb) cb(parsed);
+      S.connected=true;S.lastError=null;S.tick++;
+      if(cb)cb(parsed);
     })
-    .catch(function(err){ S.connected=false; S.lastError=err.message||String(err); render(); });
+    .catch(function(err){S.connected=false;S.lastError=err.message||String(err);render()});
 }
-function fbGet(cb) { fbFetch("GET",null,cb); }
-function fbSave()  { fbFetch("PUT",{participants:S.participants,questionCount:S.qCount,questions:S.questions,scores:S.scores,submitted:S.submitted},null); }
+function fbGet(cb){fbRequest("GET",null,null,cb)}
+function fbPatch(data,cb){fbRequest("PATCH",null,data,cb)}
+function fbPut(path,data,cb){fbRequest("PUT",path,data,cb)}
 
-function applyRemote(d) {
+// ── Data sync ────────────────────────────────────────────────────────
+function applyRemote(d){
   if(!d)return;
-  var p=d.participants||DP.slice();
-  var qc=d.questionCount||DQ;
-  S.participants=p; S.qCount=qc;
-  S.questions=d.questions||Array(qc).fill(0).map(function(_,i){return "Frage "+(i+1);});
-  S.submitted=d.submitted||Array(qc).fill(false);
-  var sc={};
-  p.forEach(function(n){
-    sc[n]=[];
-    for(var i=0;i<qc;i++) sc[n].push(d.scores&&d.scores[n]&&d.scores[n][i]!==undefined?d.scores[n][i]:null);
-  });
-  S.scores=sc;
-  // Never overwrite pending — only initialize entries for new participants
-  S.participants.forEach(function(name){
-    if(!(name in S.pending)) S.pending[name]=null;
-  });
-}
-function syncPending() {
-  S.pending={};
-  S.participants.forEach(function(p){ S.pending[p]=S.scores[p]?S.scores[p][S.curQ]:null; });
+  S.gameState=d.gameState||"lobby";
+  S.currentQuestion=d.currentQuestion||0;
+  S.qCount=d.questionCount||0;
+  S.players=d.players||{};
+  S.answers=d.answers||{};
+  S.scores=d.scores||{};
+  S.submitted=d.submitted||[];
+  // Reconstruct questions array (Firebase may convert to object)
+  var q=d.questions||[];
+  var arr=[];
+  for(var i=0;i<S.qCount;i++){
+    var raw=q[i]||{};
+    arr.push({
+      text:raw.text||("Frage "+(i+1)),
+      type:raw.type||"mc",
+      options:raw.options||["Option A","Option B","Option C","Option D"],
+      correct:raw.correct||0
+    });
+  }
+  S.questions=arr;
+  while(S.submitted.length<S.qCount)S.submitted.push(false);
 }
 
-// Poll every 2s — skip render when nothing changed or user is typing
-setInterval(function() {
-  if(!getCfg()||!S.connected)return;
+function getParticipants(){return Object.keys(S.players).sort()}
+
+function getMyScore(){
+  var name=fbKey(getPlayerName());
+  var sc=S.scores[name];
+  if(!sc)return 0;
+  var pts=0;
+  for(var i=0;i<S.qCount;i++)if(sc[i]===true)pts++;
+  return pts;
+}
+
+function getScored(){
+  return S.submitted.filter(Boolean).length;
+}
+
+// ── Polling ──────────────────────────────────────────────────────────
+setInterval(function(){
+  if(!getCfg())return;
+  var role=getRole();
+  if(!role)return;
+  if(role==="admin"&&!isAdminAuth())return;
+  if(role==="player"&&!getPlayerName())return;
   fbGet(function(data){
-    if(data) applyRemote(data);
+    if(data)applyRemote(data);
     var a=document.activeElement;
     if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))return;
-    var hash=JSON.stringify({p:S.participants,sc:S.scores,sub:S.submitted,q:S.qCount,qt:S.questions});
-    if(hash===lastRenderHash)return;
-    lastRenderHash=hash;
+    var hash=JSON.stringify({g:S.gameState,cq:S.currentQuestion,p:S.players,a:S.answers,sc:S.scores,sub:S.submitted,q:S.questions});
+    if(hash===lastPollHash)return;
+    lastPollHash=hash;
     render();
   });
-}, 2000);
+},POLL_MS);
 
-// ── Util ──────────────────────────────────────────────────────────
-function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
-function ge(id){ return document.getElementById(id); }
-function on(id,ev,fn){ var el=ge(id); if(el)el.addEventListener(ev,fn); }
-function showAlert(msg)            { S.modal={msg:msg,type:"alert"};render(); }
-function showConfirm(msg,action,arg){ S.modal={msg:msg,type:"confirm",action:action,arg:arg};render(); }
-window.clearCfg = clearCfg;
+// ── Util ─────────────────────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function ge(id){return document.getElementById(id)}
+function on(id,ev,fn){var el=ge(id);if(el)el.addEventListener(ev,fn)}
+function showAlert(msg){S.modal={msg:msg,type:"alert"};render()}
+function showConfirm(msg,action,arg){S.modal={msg:msg,type:"confirm",action:action,arg:arg};render()}
 
-// ── Render ────────────────────────────────────────────────────────
-function render() {
+// ── Render Master ────────────────────────────────────────────────────
+function render(){
   var app=ge("app");
-  if(!getCfg()){ renderCfg(); return; }
-  var err=S.lastError?renderErr():"";
-  var modal=S.modal?renderModal():"";
-  var body;
-  if(S.mode==="admin")     body=renderAdmin();
-  else if(S.mode==="setup") body=renderSetup();
-  else                       body=renderDashboard();
-  app.innerHTML=modal+renderHeader()+err+body;
-  bindAll();
-  if(S.mode==="dashboard") drawChart();
+  if(!getCfg()){app.innerHTML=renderCfg();bindCfg();return}
+  var role=getRole();
+  if(!role){app.innerHTML=renderRoleSelect();bindRole();return}
+  if(role==="admin"){
+    if(!isAdminAuth()){app.innerHTML=renderAdminLogin();bindAdminLogin();return}
+    var err=S.lastError?renderErr():"";
+    var modal=S.modal?renderModal():"";
+    var body;
+    if(S.mode==="setup")body=renderSetup();
+    else if(S.mode==="dashboard")body=renderDashboard();
+    else body=renderControl();
+    app.innerHTML=modal+renderHeader()+err+body;
+    bindAdmin();
+    if(S.mode==="dashboard")drawChart();
+  }else{
+    if(!getPlayerName()){app.innerHTML=renderPlayerName();bindPlayerName();return}
+    var err=S.lastError?renderErr():"";
+    var body;
+    if(S.gameState==="lobby")body=renderPlayerLobby();
+    else if(S.gameState==="finished")body=renderPlayerFinished();
+    else body=renderPlayerQuestion();
+    app.innerHTML=err+body;
+    bindPlayer();
+  }
 }
 
-function renderCfg() {
-  ge("app").innerHTML='<div class="cfg">'
+// ── Render: Config ───────────────────────────────────────────────────
+function renderCfg(){
+  return'<div class="cfg">'
     +'<div class="cfg-title">QUIZ LIVE</div>'
     +'<div class="cfg-sub">FIREBASE SETUP</div>'
     +'<div class="cfg-lbl">FIREBASE DATABASE URL</div>'
     +'<input id="cfg_url" class="cfg-inp" placeholder="https://mein-quiz-default-rtdb.firebaseio.com">'
-    +'<button class="cfg-save" id="cfg_save_btn">VERBINDEN →</button>'
+    +'<button class="cfg-save" id="cfg_save_btn">VERBINDEN</button>'
     +'<div class="cfg-hint">'
-    +'<b>So findest du die URL (3 Schritte):</b><br>'
-    +'1. <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Projekt öffnen<br>'
-    +'2. Links im Menü: <b>Realtime Database</b> → Datenbank erstellen → <b>Testmodus</b><br>'
-    +'3. URL steht oben, z.B.:<br>'
+    +'<b>So findest du die URL:</b><br>'
+    +'1. <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br>'
+    +'2. Realtime Database erstellen (Testmodus)<br>'
+    +'3. URL kopieren<br>'
     +'<code>https://mein-quiz-default-rtdb.firebaseio.com</code>'
     +'<div class="cfg-rules"><b>Regeln (falls OFFLINE):</b><br>'
-    +'Firebase Console → Realtime Database → Regeln:<br>'
     +'<pre>{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}</pre>'
-    +'→ <b>Veröffentlichen</b></div></div></div>';
-  on("cfg_save_btn","click",doCfgSave);
+    +'</div></div></div>';
 }
 
-function renderErr() {
-  var e=S.lastError||"";
-  var hint="";
-  if(e.indexOf("Permission denied")!==-1||e.indexOf("permission")!==-1)
-    hint='<br>→ Firebase-Regeln blockieren Zugriff. <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a> → Realtime Database → Regeln → <code>{"rules":{".read":true,".write":true}}</code> → Veröffentlichen.';
-  else if(e.indexOf("Failed to fetch")!==-1||e.indexOf("NetworkError")!==-1||e.indexOf("CORS")!==-1)
-    hint='<br>→ Netzwerkfehler oder falsche URL.';
-  else if(e.indexOf("404")!==-1)
-    hint='<br>→ Datenbank nicht gefunden.';
-  return'<div class="err-box"><b>⚠ VERBINDUNGSFEHLER</b>'+esc(e)+hint
-    +'<code>'+esc(dbUrl()||"")+'</code>'
-    +'<button onclick="clearCfg()" style="margin-top:10px;width:100%;padding:7px;border-radius:5px;border:1px solid #cc224430;background:transparent;color:#cc4466;cursor:pointer;font-family:\'Courier New\',monospace;font-size:9px;letter-spacing:2px">↺ URL ÄNDERN</button>'
+// ── Render: Role Selection ───────────────────────────────────────────
+function renderRoleSelect(){
+  return'<div class="role-wrap">'
+    +'<div class="role-title">QUIZ LIVE</div>'
+    +'<div class="role-sub">MODUS WAHLEN</div>'
+    +'<button class="role-btn player" id="role_player">SPIELER</button>'
+    +'<button class="role-btn admin" id="role_admin">ADMIN</button>'
+    +'<button class="role-back" id="role_cfg">Firebase URL andern</button>'
     +'</div>';
 }
 
-function renderHeader() {
-  var live=S.connected;
-  var badge='<span class="conn '+(live?"live":"dead")+'"><span class="dot '+(live?"live":"dead")+'"></span>'+(live?"LIVE":"OFFLINE")+'</span>';
-  var fsBtn=S.mode==="dashboard"?'<button class="fs-btn" id="fs_btn">⛶</button>':'';
-  return'<div class="header">'
-    +'<div style="display:flex;align-items:center;gap:7px;flex-shrink:1;min-width:0;overflow:hidden">'
-    +'<div class="brand-title" style="white-space:nowrap">QUIZ</div>'+badge
-    +'</div>'
-    +'<div class="tab-bar">'
-    +'<button class="tab '+(S.mode==="admin"?"on":"off")+'" id="tab_admin">ADMIN</button>'
-    +'<button class="tab '+(S.mode==="setup"?"on":"off")+'" id="tab_setup">SETUP</button>'
-    +'<button class="tab '+(S.mode==="dashboard"?"on":"off")+'" id="tab_dash">LIVE</button>'
-    +fsBtn
-    +'</div></div>';
+// ── Render: Admin Login ──────────────────────────────────────────────
+function renderAdminLogin(){
+  return'<div class="role-wrap">'
+    +'<div class="cfg-title">ADMIN LOGIN</div>'
+    +'<div class="cfg-sub">PASSWORT EINGEBEN</div>'
+    +'<input id="admin_pw" class="p-inp" type="password" placeholder="Passwort" autocomplete="off">'
+    +'<button class="p-btn" id="admin_pw_btn">ANMELDEN</button>'
+    +'<button class="role-back" id="admin_back">Zuruck</button>'
+    +'</div>';
 }
 
-function renderModal() {
+// ── Render: Player Name ──────────────────────────────────────────────
+function renderPlayerName(){
+  return'<div class="p-wrap p-center">'
+    +'<div class="p-title">QUIZ LIVE</div>'
+    +'<div class="p-sub">MITSPIELEN</div>'
+    +'<div class="p-label">DEIN NAME</div>'
+    +'<input id="player_name" class="p-inp" placeholder="Name eingeben..." autocomplete="off" maxlength="20">'
+    +'<button class="p-btn" id="player_join">BEITRETEN</button>'
+    +'<button class="role-back" id="player_back">Zuruck</button>'
+    +'</div>';
+}
+
+// ── Render: Error ────────────────────────────────────────────────────
+function renderErr(){
+  var e=S.lastError||"";
+  var hint="";
+  if(e.indexOf("Permission denied")!==-1||e.indexOf("permission")!==-1)
+    hint='<br>Firebase-Regeln blockieren Zugriff.';
+  else if(e.indexOf("Failed to fetch")!==-1||e.indexOf("NetworkError")!==-1)
+    hint='<br>Netzwerkfehler oder falsche URL.';
+  return'<div class="err-box"><b>VERBINDUNGSFEHLER</b>'+esc(e)+hint+'</div>';
+}
+
+// ── Render: Modal ────────────────────────────────────────────────────
+function renderModal(){
   var m=S.modal;
   return'<div class="overlay"><div class="mbox"><div class="mmsg">'+esc(m.msg)+'</div><div class="mbtns">'
     +(m.type==="confirm"
-      ?'<button class="mcancel" id="m_cancel">ABBRECHEN</button><button class="mconfirm" id="m_ok">LÖSCHEN</button>'
+      ?'<button class="mcancel" id="m_cancel">ABBRECHEN</button><button class="mconfirm" id="m_ok">OK</button>'
       :'<button class="mok" id="m_ok">OK</button>')
     +'</div></div></div>';
 }
 
-function renderAdmin() {
-  var ans=S.participants.filter(function(p){var v=S.pending[p];return v!==null&&v!==undefined;}).length;
-  var cols=Math.min(5,S.qCount);
-  var pcols=S.participants.length>10?3:2;
-  var pills="";
-  for(var q=0;q<S.qCount;q++){
-    var cl=S.curQ===q?"cur":S.submitted[q]?"done":"idle";
-    pills+='<button class="qpill '+cl+'" data-q="'+q+'">'+(q+1)+(S.submitted[q]?'<span class="qchk">✓</span>':'')+'</button>';
-  }
-  var cards=S.participants.map(function(p){
-    var v=S.pending[p];
-    return'<div class="pcard '+(v===true?"yes":v===false?"no":"")+'">'
-      +'<div class="pname">'+esc(p)+'</div>'
-      +'<div class="pbtns">'
-      +'<button class="pbtn y'+(v===true?" on":"")+'" data-p="'+esc(p)+'" data-v="1">✓</button>'
-      +'<button class="pbtn n'+(v===false?" on":"")+'" data-p="'+esc(p)+'" data-v="0">✗</button>'
-      +'</div></div>';
-  }).join("");
-  var sc=S.flash?"flash":ans>0?"ready":"off";
-  var st=S.flash?"✓ GESPEICHERT!":"PUNKTE VERBUCHEN"+(ans>0?" ("+ans+"/"+S.participants.length+")":"");
-  var rows=S.participants.map(function(p){
-    var pts=(S.scores[p]||[]).filter(function(v){return v===true;}).length;
-    return'<div class="sb-row"><div class="sb-nm">'+esc(p)+'</div>'
-      +'<div class="sb-bg"><div class="sb-fill" style="width:'+(S.qCount>0?Math.round(pts/S.qCount*100):0)+'%"></div></div>'
-      +'<div class="sb-pts" style="color:'+(pts>0?"#00ff88":"#2a2a3a")+'">'+pts+'</div></div>';
-  }).join("");
-  return'<div class="panel">'
-    +'<div style="margin-bottom:15px"><div class="sec-lbl" style="margin-bottom:7px">FRAGE WÄHLEN</div>'
-    +'<div class="q-grid" style="grid-template-columns:repeat('+cols+',1fr)">'+pills+'</div></div>'
-    +'<div class="sbox"><div class="sbox-top">'
-    +'<div><div class="qnum-lbl">FRAGE</div><div class="qnum-big">'+(S.curQ+1)+'<span>/'+S.qCount+'</span></div></div>'
-    +'<div><div class="mrk-lbl">MARKIERT</div><div class="mrk-num" style="color:'+(ans===S.participants.length?"#00ff88":"#bbb")+'">'+ans+'<span>/'+S.participants.length+'</span></div></div>'
-    +'</div><div class="pgrid" style="grid-template-columns:repeat('+pcols+',1fr)">'+cards+'</div></div>'
-    +'<button class="sbtn '+sc+'" id="sbtn">'+st+'</button>'
-    +'<div class="sb"><div class="sb-lbl">ZWISCHENSTAND</div>'+rows+'</div>'
-    +'<button class="rbtn" id="rbtn">↺ PUNKTE ZURÜCKSETZEN</button></div>';
+// ── Render: Admin Header ─────────────────────────────────────────────
+function renderHeader(){
+  var live=S.connected;
+  var badge='<span class="conn '+(live?"live":"dead")+'"><span class="dot '+(live?"live":"dead")+'"></span>'+(live?"LIVE":"OFFLINE")+'</span>';
+  var gs=S.gameState==="playing"?' <span style="color:#00ff88;font-size:7px;letter-spacing:1px">QUIZ LAUFT</span>'
+    :S.gameState==="finished"?' <span style="color:#ffaa00;font-size:7px;letter-spacing:1px">BEENDET</span>':"";
+  return'<div class="header">'
+    +'<div style="display:flex;align-items:center;gap:7px;flex-shrink:1;min-width:0;overflow:hidden">'
+    +'<div class="brand-title" style="white-space:nowrap">QUIZ ADMIN</div>'+badge+gs
+    +'</div>'
+    +'<div class="tab-bar">'
+    +'<button class="tab '+(S.mode==="control"?"on":"off")+'" id="tab_ctrl">CONTROL</button>'
+    +'<button class="tab '+(S.mode==="setup"?"on":"off")+'" id="tab_setup">SETUP</button>'
+    +'<button class="tab '+(S.mode==="dashboard"?"on":"off")+'" id="tab_dash">LIVE</button>'
+    +'</div></div>';
 }
 
-function renderSetup() {
-  var items=S.participants.map(function(p,i){
-    return'<div class="si">'
-      +(S.editIdx===i?'<input id="edit_inp" class="sei" value="'+esc(S.editVal)+'">'
-        :'<div class="sn">'+esc(p)+'</div>')
-      +'<button class="ibtn edit" data-edit="'+i+'">'+(S.editIdx===i?"✓":"✎")+'</button>'
-      +'<button class="ibtn del" data-del="'+esc(p)+'">✕</button></div>';
+// ── Render: Admin Control ────────────────────────────────────────────
+function renderControl(){
+  var ppl=getParticipants();
+  // Lobby state
+  if(S.gameState==="lobby"){
+    return'<div class="panel">'
+      +'<div class="sbox" style="text-align:center;padding:30px">'
+      +'<div style="font-size:10px;letter-spacing:4px;color:#555;margin-bottom:12px">QUIZ LOBBY</div>'
+      +'<div style="font-size:36px;color:#00ff88;margin-bottom:4px">'+ppl.length+'</div>'
+      +'<div style="font-size:9px;letter-spacing:3px;color:#444;margin-bottom:16px">SPIELER REGISTRIERT</div>'
+      +(ppl.length?'<div style="font-size:10px;color:#666;margin-bottom:16px">'+ppl.map(function(p){return esc(p)}).join(", ")+'</div>':'')
+      +'<div style="font-size:9px;color:#333;margin-bottom:8px">Spieler konnen beitreten unter:</div>'
+      +'<div style="font-size:10px;color:#4a8fff;word-break:break-all">'+esc(window.location.href)+'</div>'
+      +'</div>'
+      +'<button class="sbtn '+(ppl.length>0&&S.qCount>0?"ready":"off")+'" id="start_btn">'
+      +(S.qCount===0?"BITTE FRAGEN IM SETUP ANLEGEN":ppl.length===0?"WARTE AUF SPIELER...":"QUIZ STARTEN ("+ppl.length+" Spieler, "+S.qCount+" Fragen)")
+      +'</button></div>';
+  }
+  // Finished state
+  if(S.gameState==="finished"){
+    return'<div class="panel">'
+      +'<div class="sbox" style="text-align:center;padding:30px">'
+      +'<div style="font-size:10px;letter-spacing:4px;color:#ffaa00;margin-bottom:8px">QUIZ BEENDET</div>'
+      +'<div style="font-size:18px;color:#fff;margin-bottom:16px">Alle '+S.qCount+' Fragen gespielt!</div>'
+      +'</div>'
+      +renderScoreboard()
+      +'<button class="sbtn blue" id="back_lobby_btn">ZURUCK ZUR LOBBY</button>'
+      +'<button class="rbtn" id="full_reset_btn">QUIZ KOMPLETT ZURUCKSETZEN</button>'
+      +'</div>';
+  }
+  // Playing state
+  var q=S.currentQuestion;
+  var question=S.questions[q]||{text:"",type:"mc",options:[],correct:0};
+  var isSubmitted=S.submitted[q]===true;
+  var answered=0;
+  ppl.forEach(function(p){var a=S.answers[fbKey(p)];if(a&&a[q]!==undefined&&a[q]!==null)answered++});
+  var html='<div class="panel">';
+  // Question header
+  html+='<div class="sbox">';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:12px">';
+  html+='<div><div style="font-size:8px;letter-spacing:4px;color:#555">FRAGE</div><div style="font-size:36px;font-weight:bold;color:#fff;line-height:1">'+(q+1)+'<span style="font-size:14px;color:#333">/'+S.qCount+'</span></div></div>';
+  html+='<div style="text-align:right"><div style="font-size:8px;letter-spacing:2px;color:#555">ANTWORTEN</div><div style="font-size:22px;font-weight:bold;color:'+(answered===ppl.length?"#00ff88":"#bbb")+'">'+answered+'<span style="font-size:12px;color:#333">/'+ppl.length+'</span></div></div>';
+  html+='</div>';
+  html+='<div style="font-size:13px;color:#fff;margin-bottom:6px;font-weight:bold">'+esc(question.text)+'</div>';
+  html+='<div style="font-size:8px;letter-spacing:3px;color:'+(question.type==="mc"?"#00ff88":"#ffaa00")+'">'+
+    (question.type==="mc"?"MULTIPLE CHOICE":"FREITEXT")+(isSubmitted?' — AUSGEWERTET':'')+'</div>';
+  html+='</div>';
+
+  // Answer review
+  if(question.type==="mc"){
+    html+=renderMCReview(q,question,ppl,isSubmitted);
+  }else{
+    html+=renderFreeReview(q,ppl,isSubmitted);
+  }
+
+  // Action buttons
+  var sc=S.flash?"flash":(!isSubmitted?"ready":"off");
+  var label=S.flash?"GESPEICHERT!":(isSubmitted?"BEREITS AUSGEWERTET":"PUNKTE VERBUCHEN");
+  html+='<button class="sbtn '+sc+'" id="score_btn">'+label+'</button>';
+  html+='<div class="nav-row">';
+  html+='<button class="nav-btn" id="prev_btn" '+(q===0?"disabled":"")+'>ZURUCK</button>';
+  if(q<S.qCount-1){
+    html+='<button class="nav-btn" id="next_btn" style="border-color:#00ff8840;color:#00ff88">NACHSTE FRAGE</button>';
+  }else{
+    html+='<button class="nav-btn" id="finish_btn" style="border-color:#ffaa0040;color:#ffaa00">QUIZ BEENDEN</button>';
+  }
+  html+='</div>';
+  html+=renderScoreboard();
+  html+='</div>';
+  return html;
+}
+
+function renderMCReview(q,question,ppl,isSubmitted){
+  var opts=question.options||[];
+  var correct=question.correct||0;
+  // Count votes per option
+  var counts={};
+  opts.forEach(function(_,i){counts[i]=0});
+  var playerAnswers={};
+  ppl.forEach(function(p){
+    var a=S.answers[fbKey(p)];
+    var v=(a&&a[q]!==undefined&&a[q]!==null)?a[q]:null;
+    playerAnswers[p]=v;
+    if(v!==null&&counts[v]!==undefined)counts[v]++;
+  });
+  var total=ppl.length||1;
+  // Distribution bars
+  var html='<div style="margin-bottom:12px">';
+  opts.forEach(function(opt,i){
+    var isCorrect=i===correct;
+    var pct=Math.round(counts[i]/total*100);
+    html+='<div class="dist-row">';
+    html+='<div class="dist-lbl'+(isCorrect?" ok":"")+'">'+LETTERS[i]+'</div>';
+    html+='<div class="dist-bg"><div class="dist-fill'+(isCorrect?" ok":"")+'" style="width:'+pct+'%"></div></div>';
+    html+='<div class="dist-cnt">'+counts[i]+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  // Player answers
+  html+='<div style="margin-bottom:12px">';
+  ppl.forEach(function(p){
+    var v=playerAnswers[p];
+    var isCorrect=v!==null&&v===correct;
+    var cls=v===null?"":(isCorrect?"correct":"wrong");
+    var ansText=v!==null?(LETTERS[v]+") "+esc(opts[v]||"")):'<span style="color:#333">—</span>';
+    var badge=v===null?'<span class="ans-badge wait">—</span>'
+      :(isCorrect?'<span class="ans-badge right">RICHTIG</span>':'<span class="ans-badge wrong">FALSCH</span>');
+    html+='<div class="ans-card '+cls+'">';
+    html+='<div class="ans-nm">'+esc(p)+'</div>';
+    html+='<div class="ans-val">'+ansText+'</div>';
+    html+=badge;
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function renderFreeReview(q,ppl,isSubmitted){
+  var html='<div style="margin-bottom:12px">';
+  ppl.forEach(function(p){
+    var key=fbKey(p);
+    var a=S.answers[key];
+    var v=(a&&a[q]!==undefined&&a[q]!==null)?String(a[q]):"";
+    var isMarked=S.freeCorrect[key];
+    var cls=isSubmitted?(S.scores[key]&&S.scores[key][q]===true?"correct":""):"";
+    html+='<div class="ans-card '+cls+'">';
+    html+='<div class="ans-nm">'+esc(p)+'</div>';
+    html+='<div class="ans-val">'+(v?esc(v):'<span style="color:#333">—</span>')+'</div>';
+    if(!isSubmitted&&v){
+      html+='<button class="ans-toggle'+(isMarked?" on":"")+'" data-freetoggle="'+esc(key)+'">'+(isMarked?"&#10003;":"?")+'</button>';
+    }else if(isSubmitted){
+      var sc=S.scores[key]&&S.scores[key][q];
+      html+=(sc===true?'<span class="ans-badge right">RICHTIG</span>'
+        :sc===false?'<span class="ans-badge wrong">FALSCH</span>'
+        :'<span class="ans-badge wait">—</span>');
+    }else{
+      html+='<span class="ans-badge wait">—</span>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function renderScoreboard(){
+  var ppl=getParticipants();
+  var data=ppl.map(function(p){
+    var key=fbKey(p);
+    var sc=S.scores[key]||[];
+    var pts=0;for(var i=0;i<S.qCount;i++)if(sc[i]===true)pts++;
+    return{name:p,pts:pts};
+  }).sort(function(a,b){return b.pts-a.pts});
+  if(!data.length)return"";
+  var rows=data.map(function(d){
+    return'<div class="sb-row"><div class="sb-nm">'+esc(d.name)+'</div>'
+      +'<div class="sb-bg"><div class="sb-fill" style="width:'+(S.qCount>0?Math.round(d.pts/S.qCount*100):0)+'%"></div></div>'
+      +'<div class="sb-pts" style="color:'+(d.pts>0?"#00ff88":"#2a2a3a")+'">'+d.pts+'</div></div>';
   }).join("");
+  return'<div class="sb"><div class="sb-lbl">ZWISCHENSTAND</div>'+rows+'</div>';
+}
+
+// ── Render: Setup ────────────────────────────────────────────────────
+function renderSetup(){
+  var ppl=getParticipants();
+  // Players section
+  var items=ppl.map(function(p){
+    return'<div class="si"><div class="sn">'+esc(p)+'</div>'
+      +'<button class="ibtn del" data-delp="'+esc(fbKey(p))+'">&#10005;</button></div>';
+  }).join("");
+  if(!ppl.length)items='<div style="font-size:10px;color:#333;padding:8px">Noch keine Spieler registriert.</div>';
+
+  // Questions section
   var qi="";
   for(var i=0;i<S.qCount;i++){
-    var done=S.submitted[i];
-    var qtext=S.questions[i]||("Frage "+(i+1));
-    qi+='<div class="qi '+(done?"done":"")+'"><span class="qibadge '+(done?"done":"idle")+'">'+(done?"✓ DONE":"OFFEN")+'</span>'
-      +(S.editQIdx===i
-        ?'<input id="editq_inp" class="sei" value="'+esc(S.editQVal)+'">'
-        :'<span class="qiname '+(done?"done":"idle")+'">'+esc(qtext)+'</span>')
-      +'<button class="ibtn edit" data-editq="'+i+'">'+(S.editQIdx===i?"✓":"✎")+'</button>'
-      +'<button class="ibtn del" '+(S.qCount<=1?"disabled":"")+'data-delq="'+i+'">✕</button></div>';
+    var q=S.questions[i]||{text:"",type:"mc",options:[],correct:0};
+    qi+='<div class="q-card">';
+    qi+='<div class="q-card-hdr">';
+    qi+='<div class="q-card-num">F'+(i+1)+'</div>';
+    qi+='<input class="q-card-inp" value="'+esc(q.text)+'" data-qtxt="'+i+'" placeholder="Fragetext...">';
+    qi+='<button class="ibtn del" '+(S.qCount<=1?"disabled":"")+'data-delq="'+i+'">&#10005;</button>';
+    qi+='</div>';
+    qi+='<div class="q-type-bar">';
+    qi+='<button class="q-type-btn'+(q.type==="mc"?" active":"")+'" data-qtype="'+i+'" data-t="mc">MULTIPLE CHOICE</button>';
+    qi+='<button class="q-type-btn'+(q.type==="free"?" active":"")+'" data-qtype="'+i+'" data-t="free">FREITEXT</button>';
+    qi+='</div>';
+    if(q.type==="mc"){
+      var opts=q.options||[];
+      qi+='<div class="opt-list">';
+      for(var j=0;j<opts.length;j++){
+        qi+='<div class="opt-row">';
+        qi+='<input type="radio" class="opt-radio" name="correct_'+i+'" '+(j===q.correct?"checked":"")+' data-setcorrect="'+i+'" data-oidx="'+j+'">';
+        qi+='<input class="opt-inp" value="'+esc(opts[j])+'" data-opttxt="'+i+'" data-oidx="'+j+'" placeholder="Option '+LETTERS[j]+'...">';
+        qi+='<button class="opt-del" '+(opts.length<=2?"disabled":"")+'data-optdel="'+i+'" data-oidx="'+j+'">&#10005;</button>';
+        qi+='</div>';
+      }
+      qi+='<button class="opt-add" data-optadd="'+i+'">+ OPTION</button>';
+      qi+='</div>';
+    }
+    qi+='</div>';
   }
-  var answered=S.submitted.filter(Boolean).length;
-  return'<div class="panel">'
-    +'<div class="sec-hdr"><span class="sec-lbl">TEILNEHMER</span><span class="sec-cnt">'+S.participants.length+'</span><div class="sec-line"></div></div>'
-    +'<div style="margin-bottom:14px">'+items+'</div>'
-    +'<div class="add-row"><input id="new_inp" class="add-inp" placeholder="Neuer Teilnehmer...">'
-    +'<button class="add-btn" id="add_btn">+</button></div>'
-    +'<div class="sec-hdr"><span class="sec-lbl">FRAGEN</span><span class="sec-cnt">'+S.qCount+'</span><div class="sec-line"></div></div>'
-    +'<div style="margin-bottom:10px">'+qi+'</div>'
-    +'<button class="addq" id="addq_btn">+ FRAGE HINZUFÜGEN</button>'
-    +'<div class="ibox"><div class="ibox-lbl">ÜBERSICHT</div><div class="ibox-row">'
-    +'<div><div class="istat-v">'+S.participants.length+'</div><div class="istat-l">TEILNEHMER</div></div>'
-    +'<div><div class="istat-v">'+S.qCount+'</div><div class="istat-l">FRAGEN</div></div>'
-    +'<div><div class="istat-v">'+answered+'/'+S.qCount+'</div><div class="istat-l">BEANTWORTET</div></div>'
-    +'</div></div></div>';
+
+  var html='<div class="panel">';
+  html+='<div class="sec-hdr"><span class="sec-lbl">SPIELER</span><span class="sec-cnt">'+ppl.length+'</span><div class="sec-line"></div></div>';
+  html+='<div style="margin-bottom:14px">'+items+'</div>';
+  html+='<div class="sec-hdr"><span class="sec-lbl">FRAGEN</span><span class="sec-cnt">'+S.qCount+'</span><div class="sec-line"></div></div>';
+  html+='<div style="margin-bottom:10px">'+qi+'</div>';
+  html+='<button class="addq" id="addq_btn">+ FRAGE HINZUFUGEN</button>';
+
+  // Game controls
+  if(S.gameState==="lobby"){
+    html+='<button class="sbtn '+(ppl.length>0&&S.qCount>0?"ready":"off")+'" id="start_btn2">'
+      +(S.qCount===0||ppl.length===0?"SPIELER & FRAGEN BENOTIGT":"QUIZ STARTEN")+'</button>';
+  }else if(S.gameState==="playing"){
+    html+='<button class="sbtn warn" id="back_lobby_btn2">QUIZ PAUSIEREN (ZURUCK ZUR LOBBY)</button>';
+  }
+  html+='<button class="rbtn" id="full_reset_btn2">ALLES ZURUCKSETZEN</button>';
+  html+='</div>';
+  return html;
 }
 
-function renderDashboard() {
-  var qDone=S.submitted.filter(Boolean).length;
+// ── Render: Dashboard ────────────────────────────────────────────────
+function renderDashboard(){
+  var ppl=getParticipants();
+  var qDone=getScored();
   return'<div class="dash">'
     +'<div class="dash-topbar">'
-    +'<div class="logo"><div class="brand">FRESHCELLS</div><div class="title">QUIZ LIVE</div></div>'
+    +'<div class="logo"><div class="brand">QUIZ</div><div class="title">LIVE</div></div>'
     +'<div class="dash-stats">'
     +'<div class="pill">FRAGEN <span class="val">'+qDone+'/'+S.qCount+'</span></div>'
-    +'<div class="pill">TEAM <span class="val">'+S.participants.length+'</span></div>'
+    +'<div class="pill">SPIELER <span class="val">'+ppl.length+'</span></div>'
     +'<div class="pill '+(S.connected?"":"dead")+'"><span class="dot-lg '+(S.connected?"live":"dead")+'"></span>'
-    +'<span class="val">'+(S.connected?"LIVE ↻"+S.tick:"OFFLINE")+'</span></div>'
+    +'<span class="val">'+(S.connected?"LIVE":"OFFLINE")+'</span></div>'
+    +'<button class="fs-btn" id="fs_btn">VOLLBILD</button>'
     +'</div></div>'
     +'<div class="chart-wrap"><div class="chart-grid"></div><canvas id="qchart" style="position:relative;z-index:1"></canvas></div>'
     +'</div>';
 }
 
-function getChartData() {
-  return S.participants
-    .map(function(p){return{name:p,pts:(S.scores[p]||[]).filter(function(v){return v===true;}).length};})
-    .sort(function(a,b){return b.pts-a.pts;});
+// ── Render: Player Lobby ─────────────────────────────────────────────
+function renderPlayerLobby(){
+  var ppl=getParticipants();
+  return'<div class="p-wrap p-center">'
+    +'<div class="p-title">'+esc(getPlayerName())+'</div>'
+    +'<div class="p-sub">WILLKOMMEN!</div>'
+    +'<div class="lobby-anim">...</div>'
+    +'<div class="lobby-msg">Warte auf Quiz-Start</div>'
+    +'<div class="lobby-count">'+ppl.length+' Spieler online</div>'
+    +'<button class="role-back" id="player_logout" style="margin-top:30px">Abmelden</button>'
+    +'</div>';
 }
 
-function drawChart() {
-  var canvas=ge("qchart"); if(!canvas)return;
-  if(typeof Chart==="undefined"){setTimeout(drawChart,300);return;}
+// ── Render: Player Question ──────────────────────────────────────────
+function renderPlayerQuestion(){
+  var q=S.currentQuestion;
+  var question=S.questions[q]||{text:"",type:"mc",options:[],correct:0};
+  var key=fbKey(getPlayerName());
+  var myAnswers=S.answers[key]||{};
+  var myAns=myAnswers[q]!==undefined?myAnswers[q]:null;
+  var scored=getScored();
+  var myScore=getMyScore();
+
+  var html='<div class="p-header">';
+  html+='<div class="p-name-tag">'+esc(getPlayerName())+'</div>';
+  html+='<div class="p-score-tag"><b>'+myScore+'</b>/'+scored+' Punkte</div>';
+  html+='</div>';
+  html+='<div class="p-body">';
+  html+='<div class="p-qnum">FRAGE '+(q+1)+' / '+S.qCount+'</div>';
+  html+='<div class="p-qtext">'+esc(question.text)+'</div>';
+
+  if(question.type==="mc"){
+    var opts=question.options||[];
+    for(var i=0;i<opts.length;i++){
+      var sel=myAns!==null&&Number(myAns)===i;
+      html+='<button class="mc-btn'+(sel?" sel":"")+'" data-mcanswer="'+i+'">';
+      html+='<span class="mc-ltr">'+LETTERS[i]+'</span>';
+      html+='<span>'+esc(opts[i])+'</span>';
+      html+='</button>';
+    }
+    if(myAns!==null){
+      html+='<div class="p-status ok">Antwort gespeichert: '+LETTERS[Number(myAns)]+'</div>';
+    }
+  }else{
+    var freeVal=myAns!==null?String(myAns):"";
+    html+='<textarea class="free-area" id="free_input" placeholder="Deine Antwort...">'+(freeVal?esc(freeVal):"")+'</textarea>';
+    html+='<button class="p-btn" id="free_submit">ABSENDEN</button>';
+    if(myAns!==null){
+      html+='<div class="p-status ok">Antwort gespeichert</div>';
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+// ── Render: Player Finished ──────────────────────────────────────────
+function renderPlayerFinished(){
+  var ppl=getParticipants();
+  var myName=getPlayerName();
+  var myKey=fbKey(myName);
+  var myScore=getMyScore();
+  var data=ppl.map(function(p){
+    var key=fbKey(p);
+    var sc=S.scores[key]||[];
+    var pts=0;for(var i=0;i<S.qCount;i++)if(sc[i]===true)pts++;
+    return{name:p,key:key,pts:pts};
+  }).sort(function(a,b){return b.pts-a.pts});
+  var myRank=1;
+  for(var i=0;i<data.length;i++){if(data[i].key===myKey){myRank=i+1;break}}
+
+  var html='<div class="p-wrap p-center">';
+  html+='<div class="p-title">QUIZ BEENDET</div>';
+  html+='<div class="result-rank">#'+myRank+'</div>';
+  html+='<div class="result-score">'+myScore+' / '+S.qCount+' Punkte</div>';
+  html+='<div class="result-total">'+esc(myName)+'</div>';
+  html+='<div class="result-list">';
+  data.forEach(function(d,i){
+    var isMe=d.key===myKey;
+    html+='<div class="result-item">';
+    html+='<div class="result-pos'+(isMe?" me":"")+'">#'+(i+1)+'</div>';
+    html+='<div class="result-nm'+(isMe?" me":"")+'">'+esc(d.name)+'</div>';
+    html+='<div class="result-pt'+(isMe?" me":"")+'">'+d.pts+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<button class="role-back" id="player_logout" style="margin-top:30px">Abmelden</button>';
+  html+='</div>';
+  return html;
+}
+
+// ── Bind: Config ─────────────────────────────────────────────────────
+function bindCfg(){
+  on("cfg_save_btn","click",function(){
+    var url=(ge("cfg_url")||{}).value||"";
+    url=url.trim().replace(/\/$/,"");
+    if(!url.startsWith("https://")){showAlert("Bitte eine gultige URL eingeben.");return}
+    saveCfg({databaseURL:url});
+    fbGet(function(data){if(data)applyRemote(data);render()});
+    render();
+  });
+}
+
+// ── Bind: Role ───────────────────────────────────────────────────────
+function bindRole(){
+  on("role_player","click",function(){setRole("player");render()});
+  on("role_admin","click",function(){setRole("admin");render()});
+  on("role_cfg","click",function(){clearCfg()});
+}
+
+// ── Bind: Admin Login ────────────────────────────────────────────────
+function bindAdminLogin(){
+  on("admin_pw_btn","click",doAdminLogin);
+  var inp=ge("admin_pw");
+  if(inp)inp.onkeydown=function(e){if(e.key==="Enter")doAdminLogin()};
+  on("admin_back","click",function(){clearSession();render()});
+}
+
+// ── Bind: Player Name ────────────────────────────────────────────────
+function bindPlayerName(){
+  on("player_join","click",doPlayerJoin);
+  var inp=ge("player_name");
+  if(inp)inp.onkeydown=function(e){if(e.key==="Enter")doPlayerJoin()};
+  on("player_back","click",function(){clearSession();render()});
+}
+
+// ── Bind: Admin ──────────────────────────────────────────────────────
+function bindAdmin(){
+  on("tab_ctrl","click",function(){S.mode="control";render()});
+  on("tab_setup","click",function(){S.mode="setup";render()});
+  on("tab_dash","click",function(){S.mode="dashboard";render()});
+  on("fs_btn","click",function(){
+    if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(function(){});
+    else document.exitFullscreen();
+  });
+  on("m_ok","click",doModalOk);
+  on("m_cancel","click",function(){S.modal=null;render()});
+
+  // Control tab
+  on("start_btn","click",doStartQuiz);
+  on("start_btn2","click",doStartQuiz);
+  on("score_btn","click",doScoreQuestion);
+  on("prev_btn","click",doPrevQuestion);
+  on("next_btn","click",doNextQuestion);
+  on("finish_btn","click",doFinishQuiz);
+  on("back_lobby_btn","click",function(){doBackToLobby()});
+  on("back_lobby_btn2","click",function(){doBackToLobby()});
+  on("full_reset_btn","click",function(){showConfirm("Quiz komplett zurucksetzen?\nAlle Spieler, Antworten und Punkte werden geloscht.","fullreset",null)});
+  on("full_reset_btn2","click",function(){showConfirm("Quiz komplett zurucksetzen?\nAlle Spieler, Antworten und Punkte werden geloscht.","fullreset",null)});
+
+  // Free text toggles
+  document.querySelectorAll("[data-freetoggle]").forEach(function(el){
+    el.onclick=function(){
+      var key=this.dataset.freetoggle;
+      S.freeCorrect[key]=!S.freeCorrect[key];
+      render();
+    };
+  });
+
+  // Setup tab
+  on("addq_btn","click",doAddQuestion);
+  document.querySelectorAll("[data-delp]").forEach(function(el){
+    el.onclick=function(){showConfirm("Spieler entfernen?","delp",this.dataset.delp)};
+  });
+  document.querySelectorAll("[data-delq]").forEach(function(el){
+    el.onclick=function(){
+      if(S.qCount<=1){showAlert("Mindestens 1 Frage.");return}
+      showConfirm("Frage "+(+this.dataset.delq+1)+" loschen?","delq",+this.dataset.delq);
+    };
+  });
+  // Question text blur save
+  document.querySelectorAll("[data-qtxt]").forEach(function(el){
+    var idx=+el.dataset.qtxt;
+    el.oninput=function(){S.questions[idx].text=this.value};
+    el.onblur=function(){saveQuestions()};
+  });
+  // Question type toggle
+  document.querySelectorAll("[data-qtype]").forEach(function(el){
+    el.onclick=function(){
+      var idx=+this.dataset.qtype;
+      var t=this.dataset.t;
+      S.questions[idx].type=t;
+      if(t==="mc"&&(!S.questions[idx].options||S.questions[idx].options.length<2)){
+        S.questions[idx].options=["Option A","Option B","Option C","Option D"];
+        S.questions[idx].correct=0;
+      }
+      saveQuestions();
+      render();
+    };
+  });
+  // Option text blur save
+  document.querySelectorAll("[data-opttxt]").forEach(function(el){
+    var qi=+el.dataset.opttxt;
+    var oi=+el.dataset.oidx;
+    el.oninput=function(){S.questions[qi].options[oi]=this.value};
+    el.onblur=function(){saveQuestions()};
+  });
+  // Set correct option
+  document.querySelectorAll("[data-setcorrect]").forEach(function(el){
+    el.onclick=function(){
+      var qi=+this.dataset.setcorrect;
+      var oi=+this.dataset.oidx;
+      S.questions[qi].correct=oi;
+      saveQuestions();
+    };
+  });
+  // Add option
+  document.querySelectorAll("[data-optadd]").forEach(function(el){
+    el.onclick=function(){
+      var qi=+this.dataset.optadd;
+      var opts=S.questions[qi].options;
+      if(opts.length>=8)return;
+      opts.push("Option "+LETTERS[opts.length]);
+      saveQuestions();
+      render();
+    };
+  });
+  // Delete option
+  document.querySelectorAll("[data-optdel]").forEach(function(el){
+    el.onclick=function(){
+      var qi=+this.dataset.optdel;
+      var oi=+this.dataset.oidx;
+      if(S.questions[qi].options.length<=2)return;
+      S.questions[qi].options.splice(oi,1);
+      if(S.questions[qi].correct>=S.questions[qi].options.length)S.questions[qi].correct=0;
+      saveQuestions();
+      render();
+    };
+  });
+}
+
+// ── Bind: Player ─────────────────────────────────────────────────────
+function bindPlayer(){
+  on("player_logout","click",function(){clearSession();render()});
+  // MC answer
+  document.querySelectorAll("[data-mcanswer]").forEach(function(el){
+    el.onclick=function(){
+      var val=+this.dataset.mcanswer;
+      var key=fbKey(getPlayerName());
+      var q=S.currentQuestion;
+      // Optimistic update
+      if(!S.answers[key])S.answers[key]={};
+      S.answers[key][q]=val;
+      fbPut("answers/"+key+"/"+q,val);
+      render();
+    };
+  });
+  // Free text submit
+  on("free_submit","click",function(){
+    var inp=ge("free_input");
+    var val=(inp?inp.value:"").trim();
+    if(!val)return;
+    var key=fbKey(getPlayerName());
+    var q=S.currentQuestion;
+    if(!S.answers[key])S.answers[key]={};
+    S.answers[key][q]=val;
+    fbPut("answers/"+key+"/"+q,val);
+    render();
+  });
+}
+
+// ── Actions ──────────────────────────────────────────────────────────
+function doAdminLogin(){
+  var inp=ge("admin_pw");
+  var pw=(inp?inp.value:"").trim();
+  if(pw===ADMIN_PW){
+    setAdminAuth();
+    fbGet(function(data){if(data)applyRemote(data);render()});
+    render();
+  }else{
+    showAlert("Falsches Passwort.");
+  }
+}
+
+function doPlayerJoin(){
+  var inp=ge("player_name");
+  var name=(inp?inp.value:"").trim();
+  if(!name){showAlert("Bitte einen Namen eingeben.");return}
+  if(name.length>20)name=name.slice(0,20);
+  setPlayerName(name);
+  var key=fbKey(name);
+  fbPut("players/"+key,true,function(){
+    fbGet(function(data){if(data)applyRemote(data);render()});
+  });
+  render();
+}
+
+function doStartQuiz(){
+  var ppl=getParticipants();
+  if(S.qCount===0){showAlert("Bitte Fragen im Setup anlegen.");return}
+  if(ppl.length===0){showAlert("Keine Spieler registriert.");return}
+  var scores={};
+  ppl.forEach(function(p){scores[fbKey(p)]=new Array(S.qCount).fill(null)});
+  S.gameState="playing";
+  S.currentQuestion=0;
+  S.scores=scores;
+  S.submitted=new Array(S.qCount).fill(false);
+  S.freeCorrect={};
+  fbPatch({gameState:"playing",currentQuestion:0,scores:scores,submitted:S.submitted});
+  S.mode="control";
+  render();
+}
+
+function doScoreQuestion(){
+  var q=S.currentQuestion;
+  if(S.submitted[q])return;
+  var question=S.questions[q]||{type:"mc",correct:0};
+  var ppl=getParticipants();
+  ppl.forEach(function(p){
+    var key=fbKey(p);
+    if(!S.scores[key])S.scores[key]=new Array(S.qCount).fill(null);
+    var a=S.answers[key];
+    var ans=(a&&a[q]!==undefined&&a[q]!==null)?a[q]:null;
+    if(question.type==="mc"){
+      S.scores[key][q]=(ans!==null&&Number(ans)===question.correct)?true:(ans!==null?false:null);
+    }else{
+      S.scores[key][q]=S.freeCorrect[key]===true?true:(ans!==null?false:null);
+    }
+  });
+  S.submitted[q]=true;
+  fbPatch({scores:S.scores,submitted:S.submitted});
+  S.flash=true;render();
+  setTimeout(function(){S.flash=false;render()},1000);
+}
+
+function doNextQuestion(){
+  if(!S.submitted[S.currentQuestion])doScoreQuestion();
+  if(S.currentQuestion<S.qCount-1){
+    S.currentQuestion++;
+    S.freeCorrect={};
+    fbPatch({currentQuestion:S.currentQuestion});
+    render();
+  }
+}
+
+function doPrevQuestion(){
+  if(S.currentQuestion>0){
+    S.currentQuestion--;
+    S.submitted[S.currentQuestion]=false;
+    S.freeCorrect={};
+    fbPatch({currentQuestion:S.currentQuestion,submitted:S.submitted});
+    render();
+  }
+}
+
+function doFinishQuiz(){
+  if(!S.submitted[S.currentQuestion])doScoreQuestion();
+  S.gameState="finished";
+  fbPatch({gameState:"finished"});
+  render();
+}
+
+function doBackToLobby(){
+  S.gameState="lobby";
+  S.currentQuestion=0;
+  fbPatch({gameState:"lobby",currentQuestion:0});
+  render();
+}
+
+function doAddQuestion(){
+  S.qCount++;
+  S.questions.push({text:"Frage "+S.qCount,type:"mc",options:["Option A","Option B","Option C","Option D"],correct:0});
+  S.submitted.push(false);
+  saveQuestions();
+  fbPatch({questionCount:S.qCount,submitted:S.submitted});
+  render();
+}
+
+function saveQuestions(){
+  fbPatch({questions:S.questions,questionCount:S.qCount});
+}
+
+function doModalOk(){
+  var m=S.modal;S.modal=null;
+  if(!m||m.type==="alert"){render();return}
+  if(m.action==="delp"){
+    fbPut("players/"+m.arg,null);
+    delete S.players[m.arg];
+    render();
+  }else if(m.action==="delq"){
+    var idx=m.arg;
+    S.questions.splice(idx,1);
+    S.submitted.splice(idx,1);
+    S.qCount--;
+    if(S.currentQuestion>=S.qCount&&S.qCount>0)S.currentQuestion=S.qCount-1;
+    saveQuestions();
+    fbPatch({submitted:S.submitted,questionCount:S.qCount,currentQuestion:S.currentQuestion});
+    render();
+  }else if(m.action==="fullreset"){
+    S.gameState="lobby";S.currentQuestion=0;S.qCount=0;
+    S.questions=[];S.players={};S.answers={};S.scores={};S.submitted=[];
+    S.freeCorrect={};
+    fbRequest("PUT",null,{gameState:"lobby",currentQuestion:0,questionCount:0},function(){render()});
+    render();
+  }
+}
+
+// ── Chart ────────────────────────────────────────────────────────────
+function getChartData(){
+  var ppl=getParticipants();
+  return ppl.map(function(p){
+    var key=fbKey(p);
+    var sc=S.scores[key]||[];
+    var pts=0;for(var i=0;i<S.qCount;i++)if(sc[i]===true)pts++;
+    return{name:p,pts:pts};
+  }).sort(function(a,b){return b.pts-a.pts});
+}
+
+function drawChart(){
+  var canvas=ge("qchart");if(!canvas)return;
+  if(typeof Chart==="undefined"){setTimeout(drawChart,300);return}
   var data=getChartData();
-  var maxPts=data.length?Math.max.apply(null,data.map(function(d){return d.pts;})):0;
-  var hash=JSON.stringify(data)+'|'+S.qCount;
+  var maxPts=data.length?Math.max.apply(null,data.map(function(d){return d.pts})):0;
+  var hash=JSON.stringify(data)+"|"+S.qCount;
   if(chartInst&&chartInst._hash===hash&&chartInst.canvas===canvas)return;
   var h=Math.max(260,Math.min(520,window.innerHeight*0.46));
   canvas.style.height=h+"px";
-  if(chartInst){chartInst.destroy();chartInst=null;}
+  if(chartInst){chartInst.destroy();chartInst=null}
   var colors=data.map(function(d,i){
     if(d.pts===maxPts&&maxPts>0)return"#00ff88";
     if(i===1&&maxPts>0)return"#22cc66";
@@ -432,8 +1121,8 @@ function drawChart() {
   chartInst=new Chart(canvas,{
     type:"bar",
     data:{
-      labels:data.map(function(d){return d.name;}),
-      datasets:[{data:data.map(function(d){return d.pts;}),backgroundColor:colors,borderRadius:8,borderSkipped:false}]
+      labels:data.map(function(d){return d.name}),
+      datasets:[{data:data.map(function(d){return d.pts}),backgroundColor:colors,borderRadius:8,borderSkipped:false}]
     },
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -455,11 +1144,11 @@ function drawChart() {
         tooltip:{backgroundColor:"#0d1117",borderColor:"#00ff8830",borderWidth:1,
           titleColor:"#00ff88",bodyColor:"#ccc",
           titleFont:{family:"Courier New",size:13},bodyFont:{family:"Courier New",size:12},
-          callbacks:{label:function(ctx){return" "+ctx.raw+" / "+S.qCount+" Punkte";}}}
+          callbacks:{label:function(ctx){return" "+ctx.raw+" / "+S.qCount+" Punkte"}}}
       },
       scales:{
         x:{grid:{display:false},border:{color:"#1a2a1a"},ticks:{color:"#666",font:{family:"Courier New",size:fs}}},
-        y:{min:0,max:S.qCount,grid:{color:"#0d1a0d"},border:{display:false},
+        y:{min:0,max:Math.max(S.qCount,1),grid:{color:"#0d1a0d"},border:{display:false},
            ticks:{color:"#444",font:{family:"Courier New",size:11},stepSize:Math.max(1,Math.ceil(S.qCount/5))}}
       }
     }
@@ -467,127 +1156,24 @@ function drawChart() {
   chartInst._hash=hash;
 }
 
-// ── Bind ──────────────────────────────────────────────────────────
-function bindAll() {
-  on("tab_admin","click",function(){S.mode="admin";render();});
-  on("tab_setup","click",function(){S.mode="setup";render();});
-  on("tab_dash", "click",function(){S.mode="dashboard";render();});
-  on("fs_btn","click",function(){
-    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
-    else document.exitFullscreen();
-  });
-  on("m_ok","click",doModalOk);
-  on("m_cancel","click",function(){S.modal=null;render();});
-  on("sbtn","click",doSubmit);
-  on("rbtn","click",function(){showConfirm("Quiz-Punkte zurücksetzen?\nTeilnehmer & Fragen bleiben erhalten.","reset",null);});
-  on("add_btn","click",doAdd);
-  on("addq_btn","click",doAddQ);
-  var ni=ge("new_inp");
-  if(ni){ni.value=S.newName;ni.oninput=function(){S.newName=this.value;};ni.onkeydown=function(e){if(e.key==="Enter")doAdd();};}
-  var ei=ge("edit_inp");
-  if(ei){
-    ei.oninput=function(){S.editVal=this.value;};
-    ei.onkeydown=function(e){if(e.key==="Enter")commitEdit();if(e.key==="Escape"){S.editIdx=null;render();}};
-    ei.onblur=function(){setTimeout(commitEdit,150);};
-    ei.focus();
-    var len=ei.value.length; ei.setSelectionRange(len,len);
-  }
-  var eqi=ge("editq_inp");
-  if(eqi){
-    eqi.oninput=function(){S.editQVal=this.value;};
-    eqi.onkeydown=function(e){if(e.key==="Enter")commitEditQ();if(e.key==="Escape"){S.editQIdx=null;render();}};
-    eqi.onblur=function(){setTimeout(commitEditQ,150);};
-    eqi.focus();
-    var qlen=eqi.value.length; eqi.setSelectionRange(qlen,qlen);
-  }
-  document.querySelectorAll(".qpill").forEach(function(el){el.onclick=function(){S.curQ=+this.dataset.q;syncPending();render();};});
-  document.querySelectorAll(".pbtn").forEach(function(el){
-    el.onclick=function(){var p=this.dataset.p;var v=this.dataset.v==="1";S.pending[p]=S.pending[p]===v?null:v;render();};
-  });
-  document.querySelectorAll("[data-edit]").forEach(function(el){
-    el.onclick=function(){var i=+this.dataset.edit;if(S.editIdx===i)commitEdit();else{S.editIdx=i;S.editVal=S.participants[i];render();}};
-  });
-  document.querySelectorAll("[data-del]").forEach(function(el){
-    el.onclick=function(){showConfirm('"'+this.dataset.del+'" wirklich löschen?',"delP",this.dataset.del);};
-  });
-  document.querySelectorAll("[data-editq]").forEach(function(el){
-    el.onclick=function(){var i=+this.dataset.editq;if(S.editQIdx===i)commitEditQ();else{S.editQIdx=i;S.editQVal=S.questions[i]||("Frage "+(i+1));render();}};
-  });
-  document.querySelectorAll("[data-delq]").forEach(function(el){
-    el.onclick=function(){
-      if(S.qCount<=1){showAlert("Mindestens 1 Frage muss verbleiben.");return;}
-      showConfirm("Frage "+(+this.dataset.delq+1)+" löschen?","delQ",+this.dataset.delq);
-    };
-  });
-}
-
-// ── Actions ───────────────────────────────────────────────────────
-function doCfgSave() {
-  var url=(ge("cfg_url")||{}).value||"";
-  url=url.trim().replace(/\/$/,"");
-  if(!url.startsWith("https://")){showAlert("Bitte eine gültige URL eingeben.\nBeispiel:\nhttps://mein-quiz-default-rtdb.firebaseio.com");return;}
-  saveCfg({databaseURL:url});
-  fbGet(function(data){if(data)applyRemote(data);render();});
-  render();
-}
-function doModalOk(){
-  var m=S.modal; S.modal=null;
-  if(!m||m.type==="alert"){render();return;}
-  if(m.action==="reset"){
-    S.participants.forEach(function(p){S.scores[p]=Array(S.qCount).fill(null);});
-    S.submitted=Array(S.qCount).fill(false); S.curQ=0; syncPending(); fbSave(); render();
-  }else if(m.action==="delP"){
-    S.participants=S.participants.filter(function(p){return p!==m.arg;}); delete S.scores[m.arg]; fbSave(); render();
-  }else if(m.action==="delQ"){
-    var idx=m.arg;
-    S.participants.forEach(function(p){if(S.scores[p])S.scores[p].splice(idx,1);});
-    S.questions.splice(idx,1);
-    S.submitted.splice(idx,1); S.qCount--;
-    S.curQ=Math.min(S.curQ,S.qCount-1); syncPending(); fbSave(); render();
-  }
-}
-function doSubmit(){
-  var ans=S.participants.filter(function(p){var v=S.pending[p];return v!==null&&v!==undefined;});
-  if(!ans.length)return;
-  S.participants.forEach(function(p){
-    if(!S.scores[p])S.scores[p]=Array(S.qCount).fill(null);
-    S.scores[p][S.curQ]=S.pending[p]!==undefined?S.pending[p]:null;
-  });
-  S.submitted[S.curQ]=true; fbSave();
-  S.flash=true; render();
-  setTimeout(function(){S.flash=false;if(S.curQ<S.qCount-1){S.curQ++;syncPending();}render();},1200);
-}
-function doAdd(){
-  var n=S.newName.trim(); if(!n)return;
-  if(S.participants.indexOf(n)!==-1){showAlert('"'+n+'" existiert bereits!');return;}
-  S.participants.push(n); S.scores[n]=Array(S.qCount).fill(null); S.newName=""; fbSave(); render();
-}
-function doAddQ(){
-  S.qCount++;
-  S.questions.push("Frage "+S.qCount);
-  S.participants.forEach(function(p){if(S.scores[p])S.scores[p].push(null);else S.scores[p]=Array(S.qCount).fill(null);});
-  S.submitted.push(false); fbSave(); render();
-}
-function commitEditQ(){
-  var i=S.editQIdx; if(i===null||i===undefined)return;
-  var n=(S.editQVal||"").trim(); S.editQIdx=null;
-  if(!n){render();return;}
-  S.questions[i]=n;
-  fbSave(); render();
-}
-function commitEdit(){
-  var i=S.editIdx; if(i===null||i===undefined)return;
-  var old=S.participants[i]; var n=(S.editVal||"").trim(); S.editIdx=null;
-  if(!n||n===old){render();return;}
-  if(S.participants.indexOf(n)!==-1){showAlert('"'+n+'" existiert bereits!');return;}
-  S.participants[i]=n; S.scores[n]=S.scores[old]||Array(S.qCount).fill(null); delete S.scores[old];
-  fbSave(); render();
-}
-
-// ── Init ──────────────────────────────────────────────────────────
+// ── Init ─────────────────────────────────────────────────────────────
+window.clearCfg=clearCfg;
 var c=getCfg();
-if(c){fbGet(function(data){if(data)applyRemote(data);render();});}
-else{render();}
+if(c){
+  var role=getRole();
+  if(role==="admin"&&isAdminAuth()){
+    fbGet(function(data){if(data)applyRemote(data);render()});
+  }else if(role==="player"&&getPlayerName()){
+    // Re-register player on reload
+    var key=fbKey(getPlayerName());
+    fbPut("players/"+key,true,function(){
+      fbGet(function(data){if(data)applyRemote(data);render()});
+    });
+  }else{
+    fbGet(function(data){if(data)applyRemote(data);render()});
+  }
+}
+render();
 </script>
 </body>
 </html>
