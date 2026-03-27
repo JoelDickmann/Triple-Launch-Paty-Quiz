@@ -88,6 +88,8 @@ pre{color:#00ff88;font-size:10px;margin-top:6px}
 .ibtn{width:28px;height:28px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;transition:all .15s;background:transparent;font-family:'Courier New',monospace}
 .ibtn.del{border:1px solid #cc334425;color:#cc334477}
 .ibtn.del:hover{border-color:#cc334455;background:#cc334415;color:#cc3344}
+.ibtn.move{border:1px solid #ffffff20;color:#ffffff55;font-size:10px;width:24px;height:24px}
+.ibtn.move:hover{border-color:#00ff8855;color:#00ff88;background:#00ff8815}
 .ibtn:disabled{border-color:#1a1a2a!important;color:#252535!important;background:transparent!important;cursor:default}
 .addq{width:100%;padding:11px;border-radius:8px;border:1px dashed #00ff8828;background:transparent;color:#00ff8866;cursor:pointer;font-size:11px;letter-spacing:3px;font-family:'Courier New',monospace;transition:all .2s;margin-bottom:20px}
 .addq:hover{border-color:#00ff8866;color:#00ff88;background:#001a0a18}
@@ -639,6 +641,8 @@ function renderSetup(){
     qi+='<div class="q-card-hdr">';
     qi+='<div class="q-card-num">F'+(i+1)+'</div>';
     qi+='<input class="q-card-inp" value="'+esc(q.text)+'" data-qtxt="'+i+'" placeholder="Fragetext...">';
+    if(i>0)qi+='<button class="ibtn move" data-qmove="'+i+'" data-dir="-1" title="Nach oben">&#9650;</button>';
+    if(i<S.qCount-1)qi+='<button class="ibtn move" data-qmove="'+i+'" data-dir="1" title="Nach unten">&#9660;</button>';
     qi+='<button class="ibtn del" '+(S.qCount<=1?"disabled":"")+'data-delq="'+i+'">&#10005;</button>';
     qi+='</div>';
     qi+='<div class="q-type-bar">';
@@ -867,6 +871,20 @@ function bindAdmin(){
     el.onclick=function(){
       if(S.qCount<=1){showAlert("Mindestens 1 Frage.");return}
       showConfirm("Frage "+(+this.dataset.delq+1)+" loschen?","delq",+this.dataset.delq);
+    };
+  });
+  // Move question up/down
+  document.querySelectorAll("[data-qmove]").forEach(function(el){
+    el.onclick=function(){
+      var idx=+this.dataset.qmove;
+      var dir=+this.dataset.dir;
+      var target=idx+dir;
+      if(target<0||target>=S.qCount)return;
+      var tmp=S.questions[idx];
+      S.questions[idx]=S.questions[target];
+      S.questions[target]=tmp;
+      saveQuestions();
+      render();
     };
   });
   // Question text blur save
