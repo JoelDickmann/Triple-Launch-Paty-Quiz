@@ -227,7 +227,8 @@ var S={
   gameState:"lobby",currentQuestion:0,qCount:0,
   questions:[],players:{},answers:{},scores:{},submitted:[],
   freeCorrect:{},flash:false,modal:null,
-  connected:false,lastError:null,tick:0
+  connected:false,lastError:null,tick:0,
+  questionsDirty:false
 };
 var chartInst=null;
 var lastPollHash="";
@@ -281,18 +282,21 @@ function applyRemote(d){
   S.scores=d.scores||{};
   S.submitted=d.submitted||[];
   // Reconstruct questions array (Firebase may convert to object)
-  var q=d.questions||[];
-  var arr=[];
-  for(var i=0;i<S.qCount;i++){
-    var raw=q[i]||{};
-    arr.push({
-      text:raw.text||("Frage "+(i+1)),
-      type:raw.type||"mc",
-      options:raw.options||["Option A","Option B","Option C","Option D"],
-      correct:raw.correct||0
-    });
+  // Skip if admin is actively editing questions (dirty flag)
+  if(!S.questionsDirty){
+    var q=d.questions||[];
+    var arr=[];
+    for(var i=0;i<S.qCount;i++){
+      var raw=q[i]||{};
+      arr.push({
+        text:raw.text||("Frage "+(i+1)),
+        type:raw.type||"mc",
+        options:raw.options||["Option A","Option B","Option C","Option D"],
+        correct:raw.correct||0
+      });
+    }
+    S.questions=arr;
   }
-  S.questions=arr;
   while(S.submitted.length<S.qCount)S.submitted.push(false);
 }
 
@@ -739,10 +743,12 @@ function renderPlayerQuestion(){
     }
   }else{
     var freeVal=myAns!==null?String(myAns):"";
-    html+='<textarea class="free-area" id="free_input" placeholder="Deine Antwort...">'+(freeVal?esc(freeVal):"")+'</textarea>';
-    html+='<button class="p-btn" id="free_submit">ABSENDEN</button>';
     if(myAns!==null){
+      html+='<textarea class="free-area" disabled style="opacity:0.7">'+(esc(freeVal))+'</textarea>';
       html+='<div class="p-status ok">Antwort gespeichert</div>';
+    }else{
+      html+='<textarea class="free-area" id="free_input" placeholder="Deine Antwort..."></textarea>';
+      html+='<button class="p-btn" id="free_submit">ABSENDEN</button>';
     }
   }
   html+='</div>';
@@ -866,7 +872,7 @@ function bindAdmin(){
   // Question text blur save
   document.querySelectorAll("[data-qtxt]").forEach(function(el){
     var idx=+el.dataset.qtxt;
-    el.oninput=function(){S.questions[idx].text=this.value};
+    el.oninput=function(){S.questionsDirty=true;S.questions[idx].text=this.value};
     el.onblur=function(){saveQuestions()};
   });
   // Question type toggle
@@ -887,7 +893,7 @@ function bindAdmin(){
   document.querySelectorAll("[data-opttxt]").forEach(function(el){
     var qi=+el.dataset.opttxt;
     var oi=+el.dataset.oidx;
-    el.oninput=function(){S.questions[qi].options[oi]=this.value};
+    el.oninput=function(){S.questionsDirty=true;S.questions[qi].options[oi]=this.value};
     el.onblur=function(){saveQuestions()};
   });
   // Set correct option
@@ -1062,7 +1068,10 @@ function doAddQuestion(){
 }
 
 function saveQuestions(){
-  fbPatch({questions:S.questions,questionCount:S.qCount});
+  S.questionsDirty=true;
+  fbPatch({questions:S.questions,questionCount:S.qCount},function(){
+    S.questionsDirty=false;
+  });
 }
 
 function doModalOk(){
