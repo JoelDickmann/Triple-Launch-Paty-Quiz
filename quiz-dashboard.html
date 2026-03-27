@@ -116,9 +116,14 @@ setInterval(fetchData, 2000);
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 
 function getChartData() {
-  return S.participants
-    .map(function(p){return{name:p,pts:(S.scores[p]||[]).filter(function(v){return v===true;}).length};})
-    .sort(function(a,b){return b.pts-a.pts;});
+  var all=S.participants
+    .map(function(p){return{name:p,pts:(S.scores[p]||[]).filter(function(v){return v===true;}).length};});
+  var claude=null;
+  var others=[];
+  all.forEach(function(d){if(d.name===CLAUDE_KEY)claude=d;else others.push(d);});
+  others.sort(function(a,b){return b.pts-a.pts;});
+  if(claude)others.push(claude);
+  return others;
 }
 function barColor(pts,idx,max,name) {
   if(name===CLAUDE_KEY)return CLAUDE_ORANGE;
