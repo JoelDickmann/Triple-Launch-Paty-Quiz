@@ -505,7 +505,7 @@ function renderControl(){
       +'</div>'
       +renderScoreboard()
       +'<button class="sbtn blue" id="back_lobby_btn">ZURUCK ZUR LOBBY</button>'
-      +'<button class="rbtn" id="full_reset_btn">QUIZ KOMPLETT ZURUCKSETZEN</button>'
+      +'<button class="rbtn" id="full_reset_btn">SPIELERDATEN ZURUCKSETZEN</button>'
       +'</div>';
   }
   // Playing state
@@ -731,7 +731,7 @@ function renderSetup(){
   }else if(S.gameState==="playing"){
     html+='<button class="sbtn warn" id="back_lobby_btn2">QUIZ PAUSIEREN (ZURUCK ZUR LOBBY)</button>';
   }
-  html+='<button class="rbtn" id="full_reset_btn2">ALLES ZURUCKSETZEN</button>';
+  html+='<button class="rbtn" id="full_reset_btn2">SPIELERDATEN ZURUCKSETZEN</button>';
   html+='</div>';
   return html;
 }
@@ -904,8 +904,8 @@ function bindAdmin(){
   on("finish_btn","click",doFinishQuiz);
   on("back_lobby_btn","click",function(){doBackToLobby()});
   on("back_lobby_btn2","click",function(){doBackToLobby()});
-  on("full_reset_btn","click",function(){showConfirm("Quiz komplett zurucksetzen?\nAlle Spieler, Antworten und Punkte werden geloscht.","fullreset",null)});
-  on("full_reset_btn2","click",function(){showConfirm("Quiz komplett zurucksetzen?\nAlle Spieler, Antworten und Punkte werden geloscht.","fullreset",null)});
+  on("full_reset_btn","click",function(){showConfirm("Spieler, Antworten und Punkte zurucksetzen?\nFragen und Optionen bleiben erhalten.","fullreset",null)});
+  on("full_reset_btn2","click",function(){showConfirm("Spieler, Antworten und Punkte zurucksetzen?\nFragen und Optionen bleiben erhalten.","fullreset",null)});
 
   // Free text toggles
   document.querySelectorAll("[data-freetoggle]").forEach(function(el){
@@ -1192,10 +1192,11 @@ function doModalOk(){
     fbPatch({submitted:S.submitted,questionCount:S.qCount,currentQuestion:S.currentQuestion});
     render();
   }else if(m.action==="fullreset"){
-    S.gameState="lobby";S.currentQuestion=0;S.qCount=0;
-    S.questions=[];S.players={};S.answers={};S.scores={};S.submitted=[];
+    S.gameState="lobby";S.currentQuestion=0;
+    S.players={};S.answers={};S.scores={};
+    S.submitted=new Array(S.qCount).fill(false);
     S.freeCorrect={};
-    fbRequest("PUT",null,{gameState:"lobby",currentQuestion:0,questionCount:0},function(){render()});
+    fbPatch({gameState:"lobby",currentQuestion:0,players:{},answers:{},scores:{},submitted:S.submitted});
     render();
   }
 }
