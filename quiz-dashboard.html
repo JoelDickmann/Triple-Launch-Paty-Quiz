@@ -98,7 +98,12 @@ function fetchData() {
 }
 
 function applyData(d) {
-  var p=d.participants||[]; var qc=d.questionCount||10;
+  var pObj=d.players||{};
+  var p=Object.keys(pObj).sort();
+  // Claude always first
+  var ci=p.indexOf(CLAUDE_KEY);
+  if(ci>0){p.splice(ci,1);p.unshift(CLAUDE_KEY);}
+  var qc=d.questionCount||10;
   S.participants=p; S.qCount=qc;
   S.submitted=d.submitted||Array(qc).fill(false);
   var sc={};
