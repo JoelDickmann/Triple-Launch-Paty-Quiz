@@ -643,13 +643,17 @@ function renderScoreboard(){
     var key=fbKey(p);
     var sc=S.scores[key]||[];
     var pts=0;for(var i=0;i<S.qCount;i++)if(sc[i]===true)pts++;
-    return{name:p,pts:pts};
+    return{name:p,key:key,pts:pts};
   }).sort(function(a,b){return b.pts-a.pts});
   if(!data.length)return"";
   var rows=data.map(function(d){
-    return'<div class="sb-row"><div class="sb-nm">'+esc(d.name)+'</div>'
-      +'<div class="sb-bg"><div class="sb-fill" style="width:'+(S.qCount>0?Math.round(d.pts/S.qCount*100):0)+'%"></div></div>'
-      +'<div class="sb-pts" style="color:'+(d.pts>0?"#00ff88":"#2a2a3a")+'">'+d.pts+'</div></div>';
+    var isClaude=d.key===CLAUDE_KEY;
+    var barColor=isClaude?"#E07A2F":"#00ff88";
+    var nameColor=isClaude?"#E07A2F":"#555";
+    var ptsColor=d.pts>0?barColor:"#2a2a3a";
+    return'<div class="sb-row"><div class="sb-nm" style="color:'+nameColor+'">'+(isClaude?'&#129302; ':'')+esc(d.name)+'</div>'
+      +'<div class="sb-bg"><div class="sb-fill" style="width:'+(S.qCount>0?Math.round(d.pts/S.qCount*100):0)+'%;background:'+barColor+'"></div></div>'
+      +'<div class="sb-pts" style="color:'+ptsColor+'">'+d.pts+'</div></div>';
   }).join("");
   return'<div class="sb"><div class="sb-lbl">ZWISCHENSTAND</div>'+rows+'</div>';
 }
@@ -830,10 +834,12 @@ function renderPlayerFinished(){
   html+='<div class="result-list">';
   data.forEach(function(d,i){
     var isMe=d.key===myKey;
+    var isClaude=d.key===CLAUDE_KEY;
+    var nameStyle=isClaude?' style="color:#E07A2F"':'';
     html+='<div class="result-item">';
     html+='<div class="result-pos'+(isMe?" me":"")+'">#'+(i+1)+'</div>';
-    html+='<div class="result-nm'+(isMe?" me":"")+'">'+esc(d.name)+'</div>';
-    html+='<div class="result-pt'+(isMe?" me":"")+'">'+d.pts+'</div>';
+    html+='<div class="result-nm'+(isMe?" me":"")+'"'+nameStyle+'>'+(isClaude?'&#129302; ':'')+esc(d.name)+'</div>';
+    html+='<div class="result-pt'+(isMe?" me":"")+'"'+(isClaude?' style="color:#E07A2F"':'')+'>'+d.pts+'</div>';
     html+='</div>';
   });
   html+='</div>';
