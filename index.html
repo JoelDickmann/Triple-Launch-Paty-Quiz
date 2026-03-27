@@ -236,8 +236,9 @@ var chartInst=null;
 var lastPollHash="";
 
 // ── LocalStorage ─────────────────────────────────────────────────────
-function getCfg(){try{return JSON.parse(localStorage.getItem("quiz_cfg")||"null")}catch(e){return null}}
-function saveCfg(c){localStorage.setItem("quiz_cfg",JSON.stringify(c))}
+var DEFAULT_DB_URL="https://triple-launch-party-quiz-default-rtdb.europe-west1.firebasedatabase.app";
+function getCfg(){return{databaseURL:DEFAULT_DB_URL}}
+function saveCfg(c){}
 function clearCfg(){localStorage.removeItem("quiz_cfg");render()}
 function getRole(){return localStorage.getItem("quiz_role")}
 function setRole(r){localStorage.setItem("quiz_role",r)}
