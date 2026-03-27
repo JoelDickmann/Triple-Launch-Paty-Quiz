@@ -63,10 +63,13 @@ pre { color: #00ff88; font-size: 10px; margin-top: 6px; }
 <script>
 var S = { participants:[], qCount:10, scores:{}, submitted:[], connected:false, tick:0, lastError:null };
 var chartInst = null;
+var DEFAULT_DB_URL="https://triple-launch-party-quiz-default-rtdb.europe-west1.firebasedatabase.app";
+var CLAUDE_KEY="Claude";
+var CLAUDE_ORANGE="#E07A2F";
 
-function getCfg()  { try{return JSON.parse(localStorage.getItem("quiz_cfg")||"null");}catch(e){return null;} }
-function saveCfg(c){ localStorage.setItem("quiz_cfg",JSON.stringify(c)); }
-function clearCfg(){ localStorage.removeItem("quiz_cfg"); renderCfg(); }
+function getCfg()  { return{databaseURL:DEFAULT_DB_URL}; }
+function saveCfg(c){ }
+function clearCfg(){ }
 
 function dbUrl() {
   var c=getCfg(); if(!c)return null;
@@ -112,7 +115,8 @@ function getChartData() {
     .map(function(p){return{name:p,pts:(S.scores[p]||[]).filter(function(v){return v===true;}).length};})
     .sort(function(a,b){return b.pts-a.pts;});
 }
-function barColor(pts,idx,max) {
+function barColor(pts,idx,max,name) {
+  if(name===CLAUDE_KEY)return CLAUDE_ORANGE;
   if(pts===max&&max>0)return"#00ff88";
   if(idx===1&&max>0)return"#22cc66";
   if(idx===2&&max>0)return"#119944";
@@ -126,11 +130,15 @@ function render() {
   var qDone=S.submitted.filter(Boolean).length;
   var err=S.lastError?renderErr():"";
   var lbHtml=data.map(function(d,i){
+    var isClaude=d.name===CLAUDE_KEY;
     var cls=i===0&&d.pts>0?"f":i<3&&d.pts>0?"p":"r";
     var rc=["r1","r2","r3"][i]||"rn";
-    return'<div class="lbc '+cls+'"><div class="lrank '+rc+'">#'+(i+1)+'</div>'
-      +'<div class="linfo"><div class="lname">'+esc(d.name)+'</div>'
-      +'<div class="lscore '+(i===0&&d.pts>0?"f":"r")+'">'+d.pts+'<span class="ldenom">/'+S.qCount+'</span></div>'
+    var nameStyle=isClaude?' style="color:'+CLAUDE_ORANGE+'"':'';
+    var scoreStyle=isClaude?' style="color:'+CLAUDE_ORANGE+'"':'';
+    var scoreClass=isClaude?"":(i===0&&d.pts>0?"f":"r");
+    return'<div class="lbc '+cls+(isClaude?" claude":"")+'"><div class="lrank '+rc+'"'+(isClaude?' style="color:'+CLAUDE_ORANGE+'"':'')+'>#'+(i+1)+'</div>'
+      +'<div class="linfo"><div class="lname"'+nameStyle+'>'+(isClaude?'&#129302; ':'')+esc(d.name)+'</div>'
+      +'<div class="lscore '+scoreClass+'"'+scoreStyle+'>'+d.pts+'<span class="ldenom">/'+S.qCount+'</span></div>'
       +'</div></div>';
   }).join("");
   document.getElementById("app").innerHTML=
@@ -216,7 +224,7 @@ function drawChart(data,maxPts) {
   var h=Math.max(260,Math.min(520,window.innerHeight*0.46));
   canvas.style.height=h+"px";
   if(chartInst){chartInst.destroy();chartInst=null;}
-  var colors=data.map(function(d,i){return barColor(d.pts,i,maxPts);});
+  var colors=data.map(function(d,i){return barColor(d.pts,i,maxPts,d.name);});
   var fs=Math.max(9,Math.min(14,Math.floor(170/Math.max(data.length,1))));
   chartInst=new Chart(canvas,{
     type:"bar",
@@ -229,14 +237,17 @@ function drawChart(data,maxPts) {
       animation:{duration:500,easing:"easeOutQuart",
         onComplete:function(){
           if(!chartInst)return;
-          var ctx=canvas.getContext("2d");
-          ctx.save(); ctx.font="bold 14px 'Courier New'"; ctx.fillStyle="#00ff88"; ctx.textAlign="center";
+          var ctx2=canvas.getContext("2d");
+          ctx2.save(); ctx2.font="bold 14px 'Courier New'"; ctx2.textAlign="center";
           chartInst.data.datasets.forEach(function(ds,di){
             chartInst.getDatasetMeta(di).data.forEach(function(bar,idx){
-              if(ds.data[idx]>0)ctx.fillText(ds.data[idx],bar.x,bar.y-8);
+              if(ds.data[idx]>0){
+                ctx2.fillStyle=data[idx]&&data[idx].name===CLAUDE_KEY?CLAUDE_ORANGE:"#00ff88";
+                ctx2.fillText(ds.data[idx],bar.x,bar.y-8);
+              }
             });
           });
-          ctx.restore();
+          ctx2.restore();
         }
       },
       plugins:{
@@ -247,7 +258,7 @@ function drawChart(data,maxPts) {
           callbacks:{label:function(ctx){return" "+ctx.raw+" / "+S.qCount+" Punkte";}}}
       },
       scales:{
-        x:{grid:{display:false},border:{color:"#1a2a1a"},ticks:{color:"#666",font:{family:"Courier New",size:fs}}},
+        x:{grid:{display:false},border:{color:"#1a2a1a"},ticks:{color:function(ctx){return data[ctx.index]&&data[ctx.index].name===CLAUDE_KEY?CLAUDE_ORANGE:"#666";},font:{family:"Courier New",size:fs}}},
         y:{min:0,max:S.qCount,grid:{color:"#0d1a0d"},border:{display:false},
            ticks:{color:"#444",font:{family:"Courier New",size:11},stepSize:Math.max(1,Math.ceil(S.qCount/5))}}
       }
