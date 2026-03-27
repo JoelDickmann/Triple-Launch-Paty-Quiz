@@ -90,6 +90,11 @@ pre{color:#00ff88;font-size:10px;margin-top:6px}
 .ibtn.del:hover{border-color:#cc334455;background:#cc334415;color:#cc3344}
 .ibtn.move{border:1px solid #ffffff20;color:#ffffff55;font-size:10px;width:24px;height:24px}
 .ibtn.move:hover{border-color:#00ff8855;color:#00ff88;background:#00ff8815}
+.claude-ans-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:6px;background:#d4a57410;border:1px solid #d4a57430}
+.claude-label{font-size:11px;letter-spacing:1px;color:#d4a574;white-space:nowrap;font-weight:bold}
+.claude-select{flex:1;background:#0a0a14;border:1px solid #d4a57430;color:#d4a574;padding:5px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:11px}
+.claude-inp{flex:1;background:#0a0a14;border:1px solid #d4a57430;color:#d4a574;padding:5px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:11px}
+.ans-card.claude-hidden{border-color:#d4a57430;background:#d4a57408}
 .ibtn:disabled{border-color:#1a1a2a!important;color:#252535!important;background:transparent!important;cursor:default}
 .addq{width:100%;padding:11px;border-radius:8px;border:1px dashed #00ff8828;background:transparent;color:#00ff8866;cursor:pointer;font-size:11px;letter-spacing:3px;font-family:'Courier New',monospace;transition:all .2s;margin-bottom:20px}
 .addq:hover{border-color:#00ff8866;color:#00ff88;background:#001a0a18}
@@ -237,6 +242,8 @@ var lastPollHash="";
 
 // ── LocalStorage ─────────────────────────────────────────────────────
 var DEFAULT_DB_URL="https://triple-launch-party-quiz-default-rtdb.europe-west1.firebasedatabase.app";
+var CLAUDE_NAME="Claude";
+var CLAUDE_KEY="Claude";
 function getCfg(){return{databaseURL:DEFAULT_DB_URL}}
 function saveCfg(c){}
 function clearCfg(){localStorage.removeItem("quiz_cfg");render()}
@@ -291,11 +298,13 @@ function applyRemote(d){
     var arr=[];
     for(var i=0;i<S.qCount;i++){
       var raw=q[i]||{};
+      var ca=raw.claudeAnswer;
       arr.push({
         text:raw.text||("Frage "+(i+1)),
         type:raw.type||"mc",
         options:raw.options||["Option A","Option B","Option C","Option D"],
-        correct:raw.correct||0
+        correct:raw.correct||0,
+        claudeAnswer:ca!==undefined?ca:null
       });
     }
     S.questions=arr;
@@ -303,7 +312,13 @@ function applyRemote(d){
   while(S.submitted.length<S.qCount)S.submitted.push(false);
 }
 
-function getParticipants(){return Object.keys(S.players).sort()}
+function getParticipants(){
+  var keys=Object.keys(S.players).sort();
+  // Claude always first
+  var ci=keys.indexOf(CLAUDE_KEY);
+  if(ci>0){keys.splice(ci,1);keys.unshift(CLAUDE_KEY)}
+  return keys;
+}
 
 function getMyScore(){
   var name=fbKey(getPlayerName());
@@ -565,13 +580,21 @@ function renderMCReview(q,question,ppl,isSubmitted){
   html+='<div style="margin-bottom:12px">';
   ppl.forEach(function(p){
     var v=playerAnswers[p];
+    var isClaude=p===CLAUDE_KEY;
     var isCorrect=v!==null&&v===correct;
-    var cls=v===null?"":(isCorrect?"correct":"wrong");
-    var ansText=v!==null?(LETTERS[v]+") "+esc(opts[v]||"")):'<span style="color:#333">—</span>';
-    var badge=v===null?'<span class="ans-badge wait">—</span>'
-      :(isCorrect?'<span class="ans-badge right">RICHTIG</span>':'<span class="ans-badge wrong">FALSCH</span>');
+    // Hide Claude's result until scored
+    if(isClaude&&!isSubmitted){
+      var cls="claude-hidden";
+      var ansText=v!==null?'<span style="color:#d4a574">Antwort abgegeben</span>':'<span style="color:#333">—</span>';
+      var badge='<span class="ans-badge" style="background:#d4a57420;color:#d4a574">&#129302;</span>';
+    }else{
+      var cls=v===null?"":(isCorrect?"correct":"wrong");
+      var ansText=v!==null?(LETTERS[v]+") "+esc(opts[v]||"")):'<span style="color:#333">—</span>';
+      var badge=v===null?'<span class="ans-badge wait">—</span>'
+        :(isCorrect?'<span class="ans-badge right">RICHTIG</span>':'<span class="ans-badge wrong">FALSCH</span>');
+    }
     html+='<div class="ans-card '+cls+'">';
-    html+='<div class="ans-nm">'+esc(p)+'</div>';
+    html+='<div class="ans-nm">'+(isClaude?'&#129302; ':'')+esc(p)+'</div>';
     html+='<div class="ans-val">'+ansText+'</div>';
     html+=badge;
     html+='</div>';
@@ -584,22 +607,29 @@ function renderFreeReview(q,ppl,isSubmitted){
   var html='<div style="margin-bottom:12px">';
   ppl.forEach(function(p){
     var key=fbKey(p);
+    var isClaude=key===CLAUDE_KEY;
     var a=S.answers[key];
     var v=(a&&a[q]!==undefined&&a[q]!==null)?String(a[q]):"";
     var isMarked=S.freeCorrect[key];
     var cls=isSubmitted?(S.scores[key]&&S.scores[key][q]===true?"correct":""):"";
+    if(isClaude&&!isSubmitted)cls="claude-hidden";
     html+='<div class="ans-card '+cls+'">';
-    html+='<div class="ans-nm">'+esc(p)+'</div>';
-    html+='<div class="ans-val">'+(v?esc(v):'<span style="color:#333">—</span>')+'</div>';
-    if(!isSubmitted&&v){
-      html+='<button class="ans-toggle'+(isMarked?" on":"")+'" data-freetoggle="'+esc(key)+'">'+(isMarked?"&#10003;":"?")+'</button>';
-    }else if(isSubmitted){
-      var sc=S.scores[key]&&S.scores[key][q];
-      html+=(sc===true?'<span class="ans-badge right">RICHTIG</span>'
-        :sc===false?'<span class="ans-badge wrong">FALSCH</span>'
-        :'<span class="ans-badge wait">—</span>');
+    html+='<div class="ans-nm">'+(isClaude?'&#129302; ':'')+esc(p)+'</div>';
+    if(isClaude&&!isSubmitted){
+      html+='<div class="ans-val">'+(v?'<span style="color:#d4a574">Antwort abgegeben</span>':'<span style="color:#333">—</span>')+'</div>';
+      html+='<span class="ans-badge" style="background:#d4a57420;color:#d4a574">&#129302;</span>';
     }else{
-      html+='<span class="ans-badge wait">—</span>';
+      html+='<div class="ans-val">'+(v?esc(v):'<span style="color:#333">—</span>')+'</div>';
+      if(!isSubmitted&&v){
+        html+='<button class="ans-toggle'+(isMarked?" on":"")+'" data-freetoggle="'+esc(key)+'">'+(isMarked?"&#10003;":"?")+'</button>';
+      }else if(isSubmitted){
+        var sc=S.scores[key]&&S.scores[key][q];
+        html+=(sc===true?'<span class="ans-badge right">RICHTIG</span>'
+          :sc===false?'<span class="ans-badge wrong">FALSCH</span>'
+          :'<span class="ans-badge wait">—</span>');
+      }else{
+        html+='<span class="ans-badge wait">—</span>';
+      }
     }
     html+='</div>';
   });
@@ -661,6 +691,23 @@ function renderSetup(){
         qi+='</div>';
       }
       qi+='<button class="opt-add" data-optadd="'+i+'">+ OPTION</button>';
+      qi+='</div>';
+      // Claude's MC answer
+      var cAns=q.claudeAnswer;
+      qi+='<div class="claude-ans-row">';
+      qi+='<span class="claude-label">&#129302; Claude:</span>';
+      qi+='<select class="claude-select" data-claudemc="'+i+'">';
+      qi+='<option value=""'+(cAns===undefined||cAns===null?" selected":"")+'> — </option>';
+      for(var j=0;j<opts.length;j++){
+        qi+='<option value="'+j+'"'+(cAns===j?" selected":"")+'>'+LETTERS[j]+') '+esc(opts[j])+'</option>';
+      }
+      qi+='</select></div>';
+    }else{
+      // Claude's free-text answer
+      var cFree=q.claudeAnswer||"";
+      qi+='<div class="claude-ans-row">';
+      qi+='<span class="claude-label">&#129302; Claude:</span>';
+      qi+='<input class="claude-inp" value="'+esc(cFree)+'" data-claudefree="'+i+'" placeholder="Claudes Antwort...">';
       qi+='</div>';
     }
     qi+='</div>';
@@ -947,6 +994,21 @@ function bindAdmin(){
       render();
     };
   });
+  // Claude MC answer
+  document.querySelectorAll("[data-claudemc]").forEach(function(el){
+    el.onchange=function(){
+      var qi=+this.dataset.claudemc;
+      var val=this.value;
+      S.questions[qi].claudeAnswer=val===""?null:+val;
+      saveQuestions();
+    };
+  });
+  // Claude free-text answer
+  document.querySelectorAll("[data-claudefree]").forEach(function(el){
+    var qi=+el.dataset.claudefree;
+    el.oninput=function(){S.questionsDirty=true;S.questions[qi].claudeAnswer=this.value};
+    el.onblur=function(){saveQuestions()};
+  });
 }
 
 // ── Bind: Player ─────────────────────────────────────────────────────
@@ -1006,6 +1068,20 @@ function doPlayerJoin(){
 }
 
 function doStartQuiz(){
+  // Register Claude as player
+  S.players[CLAUDE_KEY]=true;
+  fbPut("players/"+CLAUDE_KEY,true);
+  // Submit Claude's pre-configured answers
+  var claudeAnswers={};
+  for(var i=0;i<S.qCount;i++){
+    var q=S.questions[i];
+    if(q.claudeAnswer!==undefined&&q.claudeAnswer!==null&&q.claudeAnswer!==""){
+      claudeAnswers[i]=q.claudeAnswer;
+    }
+  }
+  S.answers[CLAUDE_KEY]=claudeAnswers;
+  fbPut("answers/"+CLAUDE_KEY,claudeAnswers);
+
   var ppl=getParticipants();
   if(S.qCount===0){showAlert("Bitte Fragen im Setup anlegen.");return}
   if(ppl.length===0){showAlert("Keine Spieler registriert.");return}
