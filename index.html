@@ -95,6 +95,16 @@ pre{color:#00ff88;font-size:10px;margin-top:6px}
 .claude-select{flex:1;min-width:0;background:#0a0a14;border:1px solid #d4a57430;color:#d4a574;padding:5px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;box-sizing:border-box}
 .claude-inp{flex:1;min-width:0;background:#0a0a14;border:1px solid #d4a57430;color:#d4a574;padding:5px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;box-sizing:border-box}
 .ans-card.claude-hidden{border-color:#d4a57430;background:#d4a57408}
+.ql-card{padding:14px;border-radius:8px;border:1px solid #1a2a1a;background:#0a0a14;margin-bottom:10px}
+.ql-card.current{border-color:#00ff8830;background:#00ff8808}
+.ql-card.archive{border-color:#252535}
+.ql-title{font-size:12px;color:#e0e0e0;font-weight:bold;margin-bottom:4px}
+.ql-meta{font-size:10px;color:#555;letter-spacing:1px;margin-bottom:2px}
+.ql-actions{display:flex;gap:8px;margin-top:8px}
+.ql-btn{padding:8px 16px;border-radius:6px;border:1px solid #00ff8830;background:transparent;color:#00ff88;font-size:10px;font-weight:bold;letter-spacing:2px;font-family:'Courier New',monospace;cursor:pointer}
+.ql-btn:hover{background:#00ff8815}
+.ql-btn.del{border-color:#cc334425;color:#cc3344}
+.ql-btn.del:hover{background:#cc334415}
 .ibtn:disabled{border-color:#1a1a2a!important;color:#252535!important;background:transparent!important;cursor:default}
 .addq{width:100%;padding:11px;border-radius:8px;border:1px dashed #00ff8828;background:transparent;color:#00ff8866;cursor:pointer;font-size:11px;letter-spacing:3px;font-family:'Courier New',monospace;transition:all .2s;margin-bottom:20px}
 .addq:hover{border-color:#00ff8866;color:#00ff88;background:#001a0a18}
@@ -235,7 +245,8 @@ var S={
   questions:[],players:{},answers:{},scores:{},submitted:[],
   freeCorrect:{},flash:false,modal:null,
   connected:false,lastError:null,tick:0,
-  questionsDirty:false
+  questionsDirty:false,
+  archiveList:[],archiveView:null
 };
 var chartInst=null;
 var lastPollHash="";
@@ -280,6 +291,51 @@ function fbRequest(method,path,body,cb){
 function fbGet(cb){fbRequest("GET",null,null,cb)}
 function fbPatch(data,cb){fbRequest("PATCH",null,data,cb)}
 function fbPut(path,data,cb){fbRequest("PUT",path,data,cb)}
+
+// ── Archive Firebase helpers ────────────────────────────────────────
+function archiveBase(){var c=getCfg();if(!c)return null;return c.databaseURL.replace(/\/$/,"")+"/archive"}
+function archiveRequest(method,path,body,cb){
+  var base=archiveBase();if(!base)return;
+  var url=base+(path?"/"+path:"")+".json";
+  var opts={method:method,headers:{"Content-Type":"application/json"}};
+  if(body!==null&&body!==undefined)opts.body=JSON.stringify(body);
+  fetch(url,opts)
+    .then(function(r){return r.json()})
+    .then(function(d){if(cb)cb(d)})
+    .catch(function(){});
+}
+function loadArchiveList(cb){
+  archiveRequest("GET",null,null,function(d){
+    if(!d){S.archiveList=[];if(cb)cb();return}
+    var list=[];
+    Object.keys(d).forEach(function(k){
+      var a=d[k];
+      list.push({id:k,date:a.date||"",name:a.name||"Quiz",qCount:a.questionCount||0,playerCount:Object.keys(a.players||{}).length});
+    });
+    list.sort(function(a,b){return b.date.localeCompare(a.date)});
+    S.archiveList=list;
+    if(cb)cb();
+  });
+}
+function loadArchiveDetail(id,cb){
+  archiveRequest("GET",id,null,function(d){
+    if(cb)cb(d);
+  });
+}
+function archiveCurrentQuiz(cb){
+  if(S.qCount===0){if(cb)cb();return}
+  var snap={
+    date:new Date().toISOString(),
+    name:"Quiz vom "+new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}),
+    questions:S.questions,questionCount:S.qCount,
+    players:S.players,answers:S.answers,scores:S.scores,submitted:S.submitted
+  };
+  var id="q_"+Date.now();
+  archiveRequest("PUT",id,snap,function(){if(cb)cb()});
+}
+function deleteArchive(id,cb){
+  archiveRequest("PUT",id,null,function(){if(cb)cb()});
+}
 
 // ── Data sync ────────────────────────────────────────────────────────
 function applyRemote(d){
@@ -369,7 +425,9 @@ function render(){
     var err=S.lastError?renderErr():"";
     var modal=S.modal?renderModal():"";
     var body;
-    if(S.mode==="setup")body=renderSetup();
+    if(S.mode==="quizlist")body=renderQuizList();
+    else if(S.mode==="archiveview")body=renderArchiveView();
+    else if(S.mode==="setup")body=renderSetup();
     else if(S.mode==="dashboard")body=renderDashboard();
     else body=renderControl();
     app.innerHTML=modal+renderHeader()+err+body;
@@ -473,7 +531,7 @@ function renderHeader(){
     +'</div>'
     +'<div class="tab-bar">'
     +'<button class="tab '+(S.mode==="control"?"on":"off")+'" id="tab_ctrl">CONTROL</button>'
-    +'<button class="tab '+(S.mode==="setup"?"on":"off")+'" id="tab_setup">SETUP</button>'
+    +'<button class="tab '+(S.mode==="setup"||S.mode==="quizlist"||S.mode==="archiveview"?"on":"off")+'" id="tab_setup">SETUP</button>'
     +'<button class="tab '+(S.mode==="dashboard"?"on":"off")+'" id="tab_dash">LIVE</button>'
     +'</div></div>';
 }
@@ -736,6 +794,109 @@ function renderSetup(){
   return html;
 }
 
+// ── Render: Quiz List (Archive) ──────────────────────────────────────
+function renderQuizList(){
+  var html='<div class="panel">';
+  html+='<div class="sec-hdr"><span class="sec-lbl">AKTUELLES QUIZ</span><div class="sec-line"></div></div>';
+  html+='<div class="ql-card current" id="ql_current">';
+  html+='<div class="ql-title">'+esc(S.qCount>0?S.qCount+" Fragen":"Kein Quiz angelegt")+'</div>';
+  html+='<div class="ql-meta">Status: '+(S.gameState==="lobby"?"Lobby":S.gameState==="playing"?"Laufend":"Beendet")+'</div>';
+  html+='<div class="ql-meta">Spieler: '+Object.keys(S.players).length+'</div>';
+  html+='<button class="ql-btn" id="ql_edit">BEARBEITEN</button>';
+  html+='</div>';
+
+  html+='<div class="sec-hdr" style="margin-top:20px"><span class="sec-lbl">VERGANGENE QUIZZE</span><span class="sec-cnt">'+S.archiveList.length+'</span><div class="sec-line"></div></div>';
+  if(S.archiveList.length===0){
+    html+='<div style="text-align:center;color:#444;font-size:10px;padding:20px;letter-spacing:2px">KEINE ARCHIVE VORHANDEN</div>';
+  }else{
+    S.archiveList.forEach(function(a){
+      html+='<div class="ql-card archive">';
+      html+='<div class="ql-title">'+esc(a.name)+'</div>';
+      html+='<div class="ql-meta">'+a.qCount+' Fragen &middot; '+a.playerCount+' Spieler</div>';
+      html+='<div class="ql-actions">';
+      html+='<button class="ql-btn" data-archview="'+esc(a.id)+'">ANSEHEN</button>';
+      html+='<button class="ql-btn del" data-archdel="'+esc(a.id)+'">LOSCHEN</button>';
+      html+='</div>';
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+function renderArchiveView(){
+  var a=S.archiveView;
+  if(!a)return'<div class="panel"><div style="text-align:center;color:#444;padding:30px">Laden...</div></div>';
+  var html='<div class="panel">';
+  html+='<button class="ql-btn" id="arch_back" style="margin-bottom:14px">&larr; ZURUCK ZUR LISTE</button>';
+  html+='<div class="sec-hdr"><span class="sec-lbl">'+esc(a.name||"Archiv")+'</span><div class="sec-line"></div></div>';
+
+  var questions=a.questions||[];
+  var players=Object.keys(a.players||{}).sort();
+  var scores=a.scores||{};
+  var answers=a.answers||{};
+  var qCount=a.questionCount||questions.length;
+
+  // Scoreboard
+  var scoreData=players.map(function(p){
+    var sc=scores[p]||[];
+    var pts=0;for(var i=0;i<qCount;i++)if(sc[i]===true)pts++;
+    return{name:p,pts:pts};
+  }).sort(function(a,b){return b.pts-a.pts});
+
+  html+='<div class="sec-hdr" style="margin-top:10px"><span class="sec-lbl">ERGEBNIS</span><span class="sec-cnt">'+players.length+' Spieler</span><div class="sec-line"></div></div>';
+  scoreData.forEach(function(d,i){
+    var isClaude=d.name===CLAUDE_KEY;
+    var barColor=isClaude?"#E07A2F":"#00ff88";
+    var nameColor=isClaude?"#E07A2F":"#555";
+    html+='<div class="sb-row"><div class="sb-nm" style="color:'+nameColor+'">'+(isClaude?'&#129302; ':'')+esc(d.name)+'</div>'
+      +'<div class="sb-bg"><div class="sb-fill" style="width:'+(qCount>0?Math.round(d.pts/qCount*100):0)+'%;background:'+barColor+'"></div></div>'
+      +'<div class="sb-pts" style="color:'+(d.pts>0?barColor:"#2a2a3a")+'">'+d.pts+'/'+qCount+'</div></div>';
+  });
+
+  // Questions detail
+  html+='<div class="sec-hdr" style="margin-top:20px"><span class="sec-lbl">FRAGEN & ANTWORTEN</span><span class="sec-cnt">'+qCount+'</span><div class="sec-line"></div></div>';
+  for(var i=0;i<qCount;i++){
+    var q=questions[i]||{};
+    html+='<div class="q-card">';
+    html+='<div class="q-card-top"><div class="q-card-num">F'+(i+1)+'</div>';
+    html+='<div style="flex:1;font-size:12px;color:#e0e0e0">'+esc(q.text||"Frage "+(i+1))+'</div></div>';
+    if(q.type==="mc"){
+      var opts=q.options||[];
+      html+='<div class="opt-list">';
+      for(var j=0;j<opts.length;j++){
+        var isCorrect=j===q.correct;
+        html+='<div class="opt-row" style="'+(isCorrect?"background:#00ff8815;border-radius:4px":"")+'"><span style="color:'+(isCorrect?"#00ff88":"#666")+';font-size:11px;width:20px">'+LETTERS[j]+')</span><span style="font-size:11px;color:'+(isCorrect?"#00ff88":"#aaa")+'">'+esc(opts[j])+'</span>'+(isCorrect?' <span style="color:#00ff88;font-size:9px;margin-left:auto">✓ RICHTIG</span>':'')+'</div>';
+      }
+      html+='</div>';
+    }
+    // Player answers
+    html+='<div style="margin-top:8px">';
+    players.forEach(function(p){
+      var isClaude=p===CLAUDE_KEY;
+      var a=answers[p];
+      var ans=(a&&a[i]!==undefined&&a[i]!==null)?a[i]:null;
+      var sc=scores[p]&&scores[p][i];
+      var ansText="—";
+      if(ans!==null){
+        if(q.type==="mc"){var opts2=q.options||[];ansText=LETTERS[Number(ans)]+") "+(opts2[Number(ans)]||"");}
+        else ansText=String(ans);
+      }
+      var cls=sc===true?"correct":(sc===false?"wrong":"");
+      var badge=sc===true?'<span class="ans-badge right">RICHTIG</span>':(sc===false?'<span class="ans-badge wrong">FALSCH</span>':'<span class="ans-badge wait">—</span>');
+      html+='<div class="ans-card '+cls+'">';
+      html+='<div class="ans-nm" style="'+(isClaude?"color:#E07A2F":"")+'">'+(isClaude?'&#129302; ':'')+esc(p)+'</div>';
+      html+='<div class="ans-val">'+(ans!==null?esc(ansText):'<span style="color:#333">—</span>')+'</div>';
+      html+=badge+'</div>';
+    });
+    html+='</div>';
+    html+='</div>';
+  }
+
+  html+='</div>';
+  return html;
+}
+
 // ── Render: Dashboard ────────────────────────────────────────────────
 function renderDashboard(){
   var ppl=getParticipants();
@@ -886,7 +1047,7 @@ function bindPlayerName(){
 // ── Bind: Admin ──────────────────────────────────────────────────────
 function bindAdmin(){
   on("tab_ctrl","click",function(){S.mode="control";render()});
-  on("tab_setup","click",function(){S.mode="setup";render()});
+  on("tab_setup","click",function(){S.mode="quizlist";loadArchiveList(function(){render()});render()});
   on("tab_dash","click",function(){S.mode="dashboard";render()});
   on("fs_btn","click",function(){
     if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(function(){});
@@ -894,6 +1055,25 @@ function bindAdmin(){
   });
   on("m_ok","click",doModalOk);
   on("m_cancel","click",function(){S.modal=null;render()});
+
+  // Quiz list tab
+  on("ql_edit","click",function(){S.mode="setup";render()});
+  on("arch_back","click",function(){S.archiveView=null;S.mode="quizlist";loadArchiveList(function(){render()});render()});
+  document.querySelectorAll("[data-archview]").forEach(function(el){
+    el.onclick=function(){
+      var id=this.dataset.archview;
+      loadArchiveDetail(id,function(d){
+        S.archiveView=d;
+        S.mode="archiveview";
+        render();
+      });
+    };
+  });
+  document.querySelectorAll("[data-archdel]").forEach(function(el){
+    el.onclick=function(){
+      showConfirm("Archiv-Eintrag loschen?","archdel",this.dataset.archdel);
+    };
+  });
 
   // Control tab
   on("start_btn","click",doStartQuiz);
@@ -1192,11 +1372,21 @@ function doModalOk(){
     fbPatch({submitted:S.submitted,questionCount:S.qCount,currentQuestion:S.currentQuestion});
     render();
   }else if(m.action==="fullreset"){
+    // Archive current quiz before resetting (if it has scores)
+    var hasScores=S.submitted.some(function(s){return s===true});
+    if(hasScores){
+      archiveCurrentQuiz(function(){loadArchiveList()});
+    }
     S.gameState="lobby";S.currentQuestion=0;
     S.players={};S.answers={};S.scores={};
     S.submitted=new Array(S.qCount).fill(false);
     S.freeCorrect={};
     fbPatch({gameState:"lobby",currentQuestion:0,players:{},answers:{},scores:{},submitted:S.submitted});
+    render();
+  }else if(m.action==="archdel"){
+    deleteArchive(m.arg,function(){
+      loadArchiveList(function(){render()});
+    });
     render();
   }
 }
