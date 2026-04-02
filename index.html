@@ -172,6 +172,8 @@ pre{color:#00ff88;font-size:10px;margin-top:6px}
 .free-area:focus{border-color:#00ff8860}
 .p-status{text-align:center;margin-top:16px;font-size:10px;letter-spacing:3px}
 .p-status.ok{color:#00ff88}
+.p-status.locked{color:#ff9944}
+.mc-btn.locked{opacity:0.5;pointer-events:none;cursor:not-allowed}
 .p-status.wait{color:#555}
 .lobby-anim{font-size:32px;color:#00ff88;animation:pulse 2s infinite;margin:40px 0 20px}
 .lobby-msg{font-size:12px;color:#555;letter-spacing:2px}
@@ -947,21 +949,27 @@ function renderPlayerQuestion(){
   html+='<div class="p-qnum">FRAGE '+(q+1)+' / '+S.qCount+'</div>';
   html+='<div class="p-qtext">'+esc(question.text)+'</div>';
 
+  var locked=!!S.submitted[q];
   if(question.type==="mc"){
     var opts=question.options||[];
     for(var i=0;i<opts.length;i++){
       var sel=myAns!==null&&Number(myAns)===i;
-      html+='<button class="mc-btn'+(sel?" sel":"")+'" data-mcanswer="'+i+'">';
+      html+='<button class="mc-btn'+(sel?" sel":"")+(locked?" locked":"")+'"'+(locked?'':' data-mcanswer="'+i+'"')+(locked?' disabled':'')+'>';
       html+='<span class="mc-ltr">'+LETTERS[i]+'</span>';
       html+='<span>'+esc(opts[i])+'</span>';
       html+='</button>';
     }
-    if(myAns!==null){
+    if(locked){
+      html+='<div class="p-status locked">Antwort gesperrt &#128274;</div>';
+    }else if(myAns!==null){
       html+='<div class="p-status ok">Antwort gespeichert: '+LETTERS[Number(myAns)]+'</div>';
     }
   }else{
     var freeVal=myAns!==null?String(myAns):"";
-    if(myAns!==null){
+    if(locked){
+      html+='<textarea class="free-area" disabled style="opacity:0.7">'+(esc(freeVal))+'</textarea>';
+      html+='<div class="p-status locked">Antwort gesperrt &#128274;</div>';
+    }else if(myAns!==null){
       html+='<textarea class="free-area" disabled style="opacity:0.7">'+(esc(freeVal))+'</textarea>';
       html+='<div class="p-status ok">Antwort gespeichert</div>';
     }else{
@@ -1207,6 +1215,7 @@ function bindPlayer(){
       var val=+this.dataset.mcanswer;
       var key=fbKey(getPlayerName());
       var q=S.currentQuestion;
+      if(S.submitted[q])return;
       // Optimistic update
       if(!S.answers[key])S.answers[key]={};
       S.answers[key][q]=val;
@@ -1221,6 +1230,7 @@ function bindPlayer(){
     if(!val)return;
     var key=fbKey(getPlayerName());
     var q=S.currentQuestion;
+    if(S.submitted[q])return;
     if(!S.answers[key])S.answers[key]={};
     S.answers[key][q]=val;
     fbPut("answers/"+key+"/"+q,val);
