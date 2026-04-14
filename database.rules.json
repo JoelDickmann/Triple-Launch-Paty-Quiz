@@ -1,0 +1,45 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "config": {
+      "password": {
+        ".read": false,
+        ".write": "root.child('auth_verify').val() === data.val()",
+        ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 100"
+      }
+    },
+
+    "auth_verify": {
+      ".read": false,
+      ".write": "newData.val() === root.child('config/password').val()",
+      ".validate": "newData.isString()"
+    },
+
+    "quiz": {
+      ".read": true,
+      ".write": "root.child('auth_verify').val() === root.child('config/password').val()",
+
+      "players": {
+        "$name": {
+          ".write": true,
+          ".validate": "newData.val() === true || !newData.exists()"
+        }
+      },
+      "answers": {
+        "$name": {
+          ".write": true,
+          "$question": {
+            ".validate": "(newData.isString() && newData.val().length <= 500) || newData.isNumber()"
+          }
+        }
+      }
+    },
+
+    "archive": {
+      ".read": true,
+      ".write": "root.child('auth_verify').val() === root.child('config/password').val()"
+    }
+  }
+}

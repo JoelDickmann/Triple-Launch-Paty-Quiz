@@ -176,7 +176,7 @@ function renderErr() {
     hint='<br>→ Firebase-Regeln blockieren den Zugriff.<br>'
       +'Gehe zu: <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a>'
       +' → Realtime Database → <b>Regeln</b> → ersetzen mit:<br>'
-      +'<code>{"rules":{".read":true,".write":true}}</code><br>→ Veröffentlichen klicken.';
+      +'Verwende die Regeln aus <b>database.rules.json</b>.';
   } else if(e.indexOf("Failed to fetch")!==-1||e.indexOf("NetworkError")!==-1){
     hint='<br>→ Netzwerkfehler oder falsche URL.';
   } else if(e.indexOf("404")!==-1){
@@ -208,7 +208,7 @@ function renderCfg() {
     +'<div class="cfg-rules">'
     +'<b>Falls OFFLINE nach Verbindung:</b><br>'
     +'Firebase Console → Realtime Database → Regeln:'
-    +'<pre>{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}</pre>'
+    +'Verwende die Regeln aus <b>database.rules.json</b>.'
     +'→ <b>Veröffentlichen</b>'
     +'</div></div></div>';
 }

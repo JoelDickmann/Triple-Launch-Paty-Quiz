@@ -237,7 +237,7 @@ pre{color:#00ff88;font-size:10px;margin-top:6px}
 <div id="app"></div>
 <script>
 // ── Constants ────────────────────────────────────────────────────────
-var ADMIN_PW="8757";
+var AUTH_DEFAULT_PW="SLRLCCEWH2025";var authInitAttempted=false;
 var POLL_MS=2000;
 var LETTERS=["A","B","C","D","E","F","G","H"];
 
@@ -289,11 +289,36 @@ function fbRequest(method,path,body,cb){
       S.connected=true;S.lastError=null;S.tick++;
       if(cb)cb(parsed);
     })
-    .catch(function(err){S.connected=false;S.lastError=err.message||String(err);render()});
+    .catch(function(err){var msg=err.message||String(err);S.connected=false;S.lastError=msg;if(msg.indexOf("Permission denied")!==-1&&getRole()==="admin"){localStorage.removeItem("quiz_admin")}render()});
 }
 function fbGet(cb){fbRequest("GET",null,null,cb)}
 function fbPatch(data,cb){fbRequest("PATCH",null,data,cb)}
 function fbPut(path,data,cb){fbRequest("PUT",path,data,cb)}
+
+// ── Auth helpers ────────────────────────────────────────────────────
+function authBase(){var c=getCfg();if(!c)return null;return c.databaseURL.replace(/\/$/,"")}
+
+function fbVerifyAuth(pw,onOk,onFail){
+  var base=authBase();if(!base){if(onFail)onFail();return}
+  fetch(base+"/auth_verify.json",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(pw)})
+    .then(function(r){if(r.ok){if(onOk)onOk()}else{if(onFail)onFail()}})
+    .catch(function(){if(onFail)onFail()})
+}
+
+function fbInitPassword(cb){
+  var base=authBase();if(!base){if(cb)cb();return}
+  fetch(base+"/config/password.json",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(AUTH_DEFAULT_PW)})
+    .then(function(){if(cb)cb()}).catch(function(){if(cb)cb()})
+}
+
+function fbChangePassword(newPw,onOk,onFail){
+  var base=authBase();if(!base){if(onFail)onFail();return}
+  fetch(base+"/config/password.json",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(newPw)})
+    .then(function(r){
+      if(r.ok){fbVerifyAuth(newPw,onOk,onFail)}
+      else{if(onFail)onFail()}
+    }).catch(function(){if(onFail)onFail()})
+}
 
 // ── Archive Firebase helpers ────────────────────────────────────────
 function archiveBase(){var c=getCfg();if(!c)return null;return c.databaseURL.replace(/\/$/,"")+"/archive"}
@@ -463,7 +488,7 @@ function renderCfg(){
     +'3. URL kopieren<br>'
     +'<code>https://mein-quiz-default-rtdb.firebaseio.com</code>'
     +'<div class="cfg-rules"><b>Regeln (falls OFFLINE):</b><br>'
-    +'<pre>{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}</pre>'
+    +'Verwende die Regeln aus <b>database.rules.json</b> in der Firebase Console unter Realtime Database → Regeln.'
     +'</div></div></div>';
 }
 
@@ -506,7 +531,7 @@ function renderErr(){
   var e=S.lastError||"";
   var hint="";
   if(e.indexOf("Permission denied")!==-1||e.indexOf("permission")!==-1)
-    hint='<br>Firebase-Regeln blockieren Zugriff.';
+    hint='<br>Firebase-Regeln blockieren Zugriff. Stelle sicher, dass die Regeln aus <b>database.rules.json</b> in der Firebase Console hinterlegt sind.';
   else if(e.indexOf("Failed to fetch")!==-1||e.indexOf("NetworkError")!==-1)
     hint='<br>Netzwerkfehler oder falsche URL.';
   return'<div class="err-box"><b>VERBINDUNGSFEHLER</b>'+esc(e)+hint+'</div>';
@@ -793,6 +818,13 @@ function renderSetup(){
     html+='<button class="sbtn warn" id="back_lobby_btn2">QUIZ PAUSIEREN (ZURUCK ZUR LOBBY)</button>';
   }
   html+='<button class="rbtn" id="full_reset_btn2">SPIELERDATEN ZURUCKSETZEN</button>';
+
+  html+='<div class="sec-hdr" style="margin-top:20px"><span class="sec-lbl">ADMIN PASSWORT</span><div class="sec-line"></div></div>';
+  html+='<div class="sbox"><div style="font-size:9px;color:#555;letter-spacing:2px;margin-bottom:10px">PASSWORT ANDERN</div>';
+  html+='<input id="new_pw" class="q-card-inp" type="password" placeholder="Neues Passwort..." style="margin-bottom:8px">';
+  html+='<input id="new_pw2" class="q-card-inp" type="password" placeholder="Passwort wiederholen..." style="margin-bottom:8px">';
+  html+='<button class="sbtn ready" id="pw_change_btn" style="font-size:9px;letter-spacing:3px">PASSWORT ANDERN</button></div>';
+
   html+='</div>';
   return html;
 }
@@ -1204,6 +1236,20 @@ function bindAdmin(){
     el.oninput=function(){S.questionsDirty=true;S.questions[qi].claudeAnswer=this.value};
     el.onblur=function(){saveQuestions()};
   });
+
+  // Password change
+  on("pw_change_btn","click",function(){
+    var pw1=(ge("new_pw")||{}).value||"";
+    var pw2=(ge("new_pw2")||{}).value||"";
+    if(!pw1||pw1.length<4){showAlert("Passwort muss mindestens 4 Zeichen lang sein.");return}
+    if(pw1!==pw2){showAlert("Passworter stimmen nicht uberein.");return}
+    fbChangePassword(pw1,function(){
+      showAlert("Passwort erfolgreich geandert!");
+    },function(){
+      showAlert("Passwort konnte nicht geandert werden.\nBitte erneut anmelden.");
+      localStorage.removeItem("quiz_admin");render();
+    });
+  });
 }
 
 // ── Bind: Player ─────────────────────────────────────────────────────
@@ -1242,13 +1288,23 @@ function bindPlayer(){
 function doAdminLogin(){
   var inp=ge("admin_pw");
   var pw=(inp?inp.value:"").trim();
-  if(pw===ADMIN_PW){
+  if(!pw){showAlert("Bitte Passwort eingeben.");return}
+  fbVerifyAuth(pw,function(){
     setAdminAuth();
     fbGet(function(data){if(data)applyRemote(data);render()});
     render();
-  }else{
-    showAlert("Falsches Passwort.");
-  }
+  },function(){
+    if(!authInitAttempted&&pw===AUTH_DEFAULT_PW){
+      authInitAttempted=true;
+      fbInitPassword(function(){
+        fbVerifyAuth(pw,function(){
+          setAdminAuth();
+          fbGet(function(data){if(data)applyRemote(data);render()});
+          render();
+        },function(){showAlert("Falsches Passwort.")})
+      })
+    }else{showAlert("Falsches Passwort.")}
+  })
 }
 
 function doPlayerJoin(){
